@@ -957,7 +957,7 @@ internal class SwapFormViewModel @Inject constructor(
     }
 
     companion object {
-        const val AFFILIATE_FEE_USD_THRESHOLD = 100
+        const val AFFILIATE_FEE_USD_THRESHOLD = 10000000
         const val ETH_GAS_LIMIT: Long = 40_000
         const val ARB_GAS_LIMIT: Long = 400_000
     }
