@@ -75,6 +75,6 @@ internal class LiFiChainApiImpl @Inject constructor(
 
     companion object {
         private const val INTEGRATOR_ACCOUNT = "vultisig-android"
-        private const val INTEGRATOR_FEE = "0.005"
+        private const val INTEGRATOR_FEE = "0"
     }
 }
