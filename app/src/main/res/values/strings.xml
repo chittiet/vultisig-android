@@ -568,7 +568,7 @@
     <string name="peer_discovery_this_device" translatable="false">This Device</string>
     <string name="peer_discovery_scan_with_n_device" translatable="false">Scan with %1$s device</string>
     <string name="peer_discovery_optional_device_caption" translatable="false">Optional</string>
-    <string name="peer_discovery_waiting_for_devices_action" translatable="false">Waiting for devices...</string>
+    <string name="peer_discovery_waiting_for_devices_action" translatable="false">Waiting on devices...</string>
     <string name="peer_discovery_devices_n_of_n" translatable="false">Devices (%1$s/%2$s)</string>
     <string name="scan_qr_code_modal_annotation" translatable="false">Download Vultisig on your other device(s) and select \'Scan QR code\'</string>
     <string name="scan_qr_code_modal_next" translatable="false">Next</string>
@@ -599,7 +599,7 @@
     <string name="keygen_step_generating_eddsa" translatable="false">Generating EdDSA Key</string>
     <string name="keygen_connecting_with_server" translatable="false">Connecting with server...</string>
     <string name="keygen_connecting_with_server_take_a_minute" translatable="false">This should only take a minute</string>
-    <string name="peer_discovery_switch_network_mode_want_to_sign_privately" translatable="false">Want to sign privately?</string>
+    <string name="peer_discovery_switch_network_mode_want_to_sign_privately" translatable="false">Want to create vault privately?</string>
     <string name="peer_discovery_switch_network_mode_switch_to_local" translatable="false">Switch to local mode</string>
     <string name="peer_discovery_switch_network_mode_switch_to_internet" translatable="false">Switch back to internet mode</string>
     <string name="peer_discovery_local_mode_hint" translatable="false">You’re in local mode</string>
@@ -612,6 +612,7 @@
     <string name="fast_vault_password_screen_hint" translatable="false">This occurs because the password is used to locally encrypt the backup file, similar to how a hard drive is encrypted. In the following step, you have the option to add a hint.</string>
     <string name="fast_vault_password_screen_hint_title" translatable="false">More Info</string>
     <string name="fast_vault_password_screen_warning" translatable="false">Password cannot be reset or recovered</string>
+    <string name="fast_vault_password_screen_error" translatable="false">Passwords do not match</string>
     <string name="fast_vault_password_screen_next" translatable="false">Next</string>
     <string name="fast_vault_password_hint_screen_title" translatable="false">Add a optional hint</string>
     <string name="fast_vault_password_hint_screen_desc" translatable="false">This will be shown in case your forget your password</string>
@@ -627,9 +628,9 @@
     <string name="error_view_default_description" translatable="false">An error occurred</string>
     <string name="keygen_vault_created_success_part_1" translatable="false">Vault created</string>
     <string name="vault_created_success_part_2" translatable="false">successfully</string>
-    <string name="backup_vault_backup_now_button" translatable="false">Back-up now</string>
-    <string name="backup_vault_backup_vault_share_title" translatable="false">Back-up your vault share online</string>
-    <string name="backup_vault_topbar_title" translatable="false">Back-up Vault</string>
+    <string name="backup_vault_backup_now_button" translatable="false">Backup now</string>
+    <string name="backup_vault_backup_vault_share_title" translatable="false">Backup your vault share online</string>
+    <string name="backup_vault_topbar_title" translatable="false">Backup Vault</string>
     <string name="vault_backup_screen_paste" translatable="false">Paste</string>
     <string name="enter_backup_screen_title" translatable="false">Enter the 4 digit code\nwe emailed you</string>
     <string name="enter_backup_screen_desc" translatable="false">This code will confirm that you’ve received your vault share 1 via email</string>

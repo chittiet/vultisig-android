@@ -23,6 +23,8 @@ import com.vultisig.wallet.data.models.isFastVault
 import com.vultisig.wallet.data.repositories.LastOpenedVaultRepository
 import com.vultisig.wallet.data.repositories.VaultDataStoreRepository
 import com.vultisig.wallet.data.repositories.VaultPasswordRepository
+import com.vultisig.wallet.data.repositories.vault.TempVaultDto
+import com.vultisig.wallet.data.repositories.vault.TemporaryVaultRepository
 import com.vultisig.wallet.data.tss.LocalStateAccessor
 import com.vultisig.wallet.data.tss.TssMessagePuller
 import com.vultisig.wallet.data.tss.TssMessenger
@@ -74,6 +76,7 @@ internal class KeygenViewModel @Inject constructor(
     private val lastOpenedVaultRepository: LastOpenedVaultRepository,
     private val vaultDataStoreRepository: VaultDataStoreRepository,
     private val vaultPasswordRepository: VaultPasswordRepository,
+    private val temporaryVaultRepository: TemporaryVaultRepository,
     private val sessionApi: SessionApi,
     private val encryption: Encryption,
     private val featureFlagApi: FeatureFlagApi,
@@ -89,7 +92,6 @@ internal class KeygenViewModel @Inject constructor(
         hexChainCode = args.hexChainCode,
         localPartyID = args.localPartyId,
         signers = args.keygenCommittee,
-        // todo check if value correct or if we can get it here
         resharePrefix = args.oldResharePrefix,
         libType = args.libType,
     )
@@ -337,41 +339,46 @@ internal class KeygenViewModel @Inject constructor(
     private suspend fun saveVault() {
         val vaultId = vault.id
 
-        // TODO fast vault should not be saved without verification
-
-        saveVault(vault, isReshareMode)
-
-        vaultDataStoreRepository.setBackupStatus(vaultId = vaultId, false)
-        args.hint?.let { vaultDataStoreRepository.setFastSignHint(vaultId = vaultId, hint = it) }
-        lastOpenedVaultRepository.setLastOpenedVaultId(vaultId)
-
         val password = args.password
-        if (password != null && context.canAuthenticateBiometric()) {
-            vaultPasswordRepository.savePassword(vaultId, password)
+        if (args.email != null && args.password != null) {
+            temporaryVaultRepository.add(
+                TempVaultDto(
+                    vault = vault,
+                    email = args.email,
+                    password = args.password,
+                    hint = args.hint,
+                )
+            )
+
+            if (password != null && context.canAuthenticateBiometric()) {
+                vaultPasswordRepository.savePassword(vaultId, password)
+            }
+        } else {
+            saveVault(vault, isReshareMode)
+
+            vaultDataStoreRepository.setBackupStatus(vaultId = vaultId, false)
         }
+
+        lastOpenedVaultRepository.setLastOpenedVaultId(vaultId)
 
         delay(2.seconds)
 
         stopService()
 
-        if (!isReshareMode) {
-            navigator.route(
-                route = Route.Onboarding.VaultBackup(
-                    vaultId = vaultId,
-                    pubKeyEcdsa = vault.pubKeyECDSA,
-                    email = args.email,
-                    vaultType = if (vault.isFastVault())
-                        VaultType.Fast
-                    else VaultType.Secure
-                ),
-                opts = NavigationOptions(
-                    popUpToRoute = Route.Keygen.Generating::class,
-                    inclusive = true,
-                ),
-            )
-        } else {
-            // TODO add reshare action
-        }
+        navigator.route(
+            route = Route.Onboarding.VaultBackup(
+                vaultId = vaultId,
+                pubKeyEcdsa = vault.pubKeyECDSA,
+                email = args.email,
+                vaultType = if (vault.isFastVault())
+                    VaultType.Fast
+                else VaultType.Secure
+            ),
+            opts = NavigationOptions(
+                popUpToRoute = Route.Keygen.Generating::class,
+                inclusive = true,
+            ),
+        )
     }
 
     private fun stopService() {

@@ -124,8 +124,9 @@ private fun PeerDiscoveryScreen(
     onNextClick: () -> Unit,
     onDismissQrHelpModal: () -> Unit,
 ) {
-    val devicesSize = state.selectedDevices.size + 1 // we always have our device
-    val hasEnoughDevices = devicesSize >= state.minimumDevices
+    val selectedDevicesSize = state.selectedDevices.size + 1 // we always have our device
+    val devicesSize = state.devices.size + 1
+    val hasEnoughDevices = selectedDevicesSize >= state.minimumDevices
 
     val ordinalFormatter = remember { MessageFormat("{0,ordinal}") }
 
@@ -172,31 +173,8 @@ private fun PeerDiscoveryScreen(
                             vertical = 36.dp,
                             horizontal = 46.dp,
                         )
-                        .fillMaxWidth()
-                        .background(
-                            color = when (state.network) {
-                                NetworkOption.Local -> Theme.colors.backgrounds.secondary
-                                NetworkOption.Internet -> Theme.colors.backgrounds.primary
-                            },
-                            shape = shape,
-                        )
-                        .then(
-                            when (state.network) {
-                                NetworkOption.Local -> Modifier.dashedBorder(
-                                    width = 1.dp,
-                                    color = Theme.colors.borders.normal,
-                                    cornerRadius = 24.dp,
-                                    dashLength = 4.dp,
-                                    intervalLength = 4.dp,
-                                )
-
-                                NetworkOption.Internet -> Modifier.border(
-                                    width = 1.dp,
-                                    color = Theme.colors.borders.light,
-                                    shape = shape,
-                                )
-                            }
-                        )
+                        .fillMaxWidth(),
+                    devicesSize = devicesSize,
                 )
 
                 AnimatedVisibility(
@@ -225,7 +203,7 @@ private fun PeerDiscoveryScreen(
                 Text(
                     text = stringResource(
                         R.string.peer_discovery_devices_n_of_n,
-                        devicesSize,
+                        selectedDevicesSize,
                         state.minimumDevicesDisplayed,
                     ),
                     style = Theme.brockmann.headings.title2,
@@ -374,14 +352,25 @@ private fun buildNetworkModeText(
 @Composable
 private fun QrCodeContainer(
     modifier: Modifier = Modifier,
+    devicesSize: Int = 0,
     qrCode: BitmapPainter? = null,
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .padding(28.dp)
     ) {
+        RiveAnimation(
+            animation = R.raw.riv_qr_scanned,
+            onInit = { riveAnimationView ->
+                if (devicesSize > 1)
+                    riveAnimationView.fireState(
+                        stateMachineName = "State Machine 1",
+                        inputName = "isSucces"
+                    )
+            }
+        )
         AnimatedVisibility(
+            modifier = Modifier.padding(28.dp),
             visible = qrCode != null,
             enter = fadeIn(),
         ) {
