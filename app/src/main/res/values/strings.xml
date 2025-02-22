@@ -261,7 +261,7 @@
     <string name="custom_token_enter_contract_address">Enter Contract Address</string>
     <string name="custom_token_token_not_found">Token not found</string>
     <string name="custom_token_add_token">Add %1$s Token</string>
-    <string name="deposit_form_amount_title">Amount</string>
+    <string name="deposit_form_amount_title">Amount (Balance: %1$s)</string>
     <string name="share_vault_qr_title">Share Vault QR</string>
     <string name="share_vault_qr_save">Save</string>
     <string name="vault_settings_enable_biometrics_save">Save</string>
@@ -422,7 +422,7 @@
     <string name="backup_password_screen_hint_field">Enter a hint</string>
     <string name="import_file_password_hint_text">Hint: %s</string>
     <string name="keygen_vultiserver_peer_discovery_waiting">Looking for Vultiserver to connect…</string>
-    <string name="scan_qr_upload_from_gallery">Upload from\nGallery</string>
+    <string name="scan_qr_upload_from_gallery">Upload QR</string>
     <string name="reshare_start_join_reshare_button">Join Reshare</string>
     <string name="deposit_error_invalid_lpunits">LP units is invalid</string>
     <string name="deposit_error_invalid_assets">Assets is invalid</string>
@@ -640,5 +640,6 @@
     <string name="vault_backup_screen_email_sent_to" translatable="false">Sent to %s.</string>
     <string name="vault_backup_screen_donot_recieve_email" translatable="false">Didn’t receive an email?</string>
     <string name="vault_backup_screen_restart_keygen" translatable="false">Restart keygen</string>
-    <string name="vault_backup_summary_start_using_vault" translatable="false">Start using vault</string>
+    <string name="vault_backup_summary_start_using_vault" translatable="false">Start using your Vault</string>
+    <string name="transaction_done_form_approve" translatable="false">Approve</string>
 </resources>
