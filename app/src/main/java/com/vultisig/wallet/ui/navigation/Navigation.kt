@@ -1,11 +1,10 @@
 package com.vultisig.wallet.ui.navigation
 
-import android.net.Uri
 import com.vultisig.wallet.data.models.Chain
+import com.vultisig.wallet.data.models.ChainId
 import com.vultisig.wallet.data.models.SigningLibType
 import com.vultisig.wallet.data.models.TssAction
 import com.vultisig.wallet.data.models.VaultId
-import com.vultisig.wallet.ui.models.keygen.VaultSetupType
 import kotlinx.serialization.Serializable
 
 internal open class Dst(
@@ -262,16 +261,6 @@ internal sealed class Destination(
     data object LanguageSetting : Destination(route = "settings/language")
     data object CurrencyUnitSetting : Destination(route = "settings/currency")
 
-    data class NamingVault(
-        val vaultSetupType: VaultSetupType,
-    ) : Destination(route = "naming_vault/${vaultSetupType.raw}") {
-        companion object {
-            const val ARG_VAULT_SETUP_TYPE = "vault_setup_type"
-            const val STATIC_ROUTE = "naming_vault/{$ARG_VAULT_SETUP_TYPE}"
-        }
-    }
-
-
     data class QrAddressScreen(
         val vaultId: String? = null,
         val address: String,
@@ -287,94 +276,6 @@ internal sealed class Destination(
             const val STATIC_ROUTE =
                 "vault_details/{$ARG_VAULT_ID}/qr_address_screen/{$ARG_COIN_ADDRESS}" +
                         "?${ARG_CHAIN_NAME}={$ARG_CHAIN_NAME}"
-        }
-    }
-
-    data class KeygenEmail(
-        val vaultId: String?,
-        val name: String?,
-        val setupType: VaultSetupType,
-    ) : Destination(route = buildRoute(vaultId, name, setupType.raw)) {
-        companion object {
-            const val STATIC_ROUTE =
-                "keygen/email?${ARG_VAULT_SETUP_TYPE}={$ARG_VAULT_SETUP_TYPE}" +
-                        "&${ARG_VAULT_NAME}={$ARG_VAULT_NAME}" +
-                        "&${ARG_VAULT_ID}={$ARG_VAULT_ID}"
-
-            fun buildRoute(vaultId: String?, name: String?, setupType: Int) =
-                "keygen/email?${ARG_VAULT_NAME}=${name}" +
-                        "&${ARG_VAULT_SETUP_TYPE}=${setupType}" +
-                        "&${ARG_VAULT_ID}=$vaultId"
-        }
-    }
-
-    data class KeygenPassword(
-        val vaultId: String?,
-        val name: String?,
-        val setupType: VaultSetupType,
-        val email: String,
-    ) : Destination(route = buildRoute(vaultId, name, Uri.encode(email), setupType)) {
-        companion object {
-            const val STATIC_ROUTE = "keygen/password?${ARG_EMAIL}={$ARG_EMAIL}" +
-                    "&${ARG_VAULT_SETUP_TYPE}={$ARG_VAULT_SETUP_TYPE}" +
-                    "&${ARG_VAULT_NAME}={$ARG_VAULT_NAME}" +
-                    "&${ARG_VAULT_ID}={$ARG_VAULT_ID}"
-
-            private fun buildRoute(
-                vaultId: String?,
-                name: String?,
-                email: String,
-                setupType: VaultSetupType,
-            ) = "keygen/password?${ARG_EMAIL}=$email" +
-                    "&${ARG_VAULT_SETUP_TYPE}=${setupType.raw}" +
-                    "&${ARG_VAULT_NAME}=$name" +
-                    "&${ARG_VAULT_ID}=$vaultId"
-
-        }
-    }
-
-    data class KeygenFlow(
-        val vaultId: String?,
-        val vaultName: String?,
-        val vaultSetupType: VaultSetupType,
-        val email: String?,
-        val password: String?,
-        val hint: String? = null,
-    ) : Destination(
-        route = buildRoute(
-            vaultId,
-            vaultName,
-            vaultSetupType.raw,
-            Uri.encode(email),
-            Uri.encode(password),
-            Uri.encode(hint),
-        )
-    ) {
-        companion object {
-            const val ARG_VAULT_ID = "vault_id"
-            const val ARG_VAULT_NAME = "vault_name"
-            const val ARG_PASSWORD_HINT = "password_hint"
-
-            const val STATIC_ROUTE = "keygen/generate?${ARG_VAULT_ID}={$ARG_VAULT_ID}" +
-                    "&${ARG_VAULT_NAME}={$ARG_VAULT_NAME}" +
-                    "&${ARG_VAULT_SETUP_TYPE}={$ARG_VAULT_SETUP_TYPE}" +
-                    "&${ARG_EMAIL}={$ARG_EMAIL}" +
-                    "&${ARG_PASSWORD}={$ARG_PASSWORD}" +
-                    "&${ARG_PASSWORD_HINT}={$ARG_PASSWORD_HINT}"
-
-            private fun buildRoute(
-                vaultId: String?,
-                name: String?,
-                type: Int,
-                email: String?,
-                password: String?,
-                hint: String?,
-            ) = "keygen/generate?${ARG_VAULT_ID}=$vaultId" +
-                    "&${ARG_VAULT_NAME}=$name" +
-                    "&${ARG_VAULT_SETUP_TYPE}=${type}" +
-                    "&${ARG_EMAIL}=$email" +
-                    "&${ARG_PASSWORD}=$password" +
-                    "&${ARG_PASSWORD_HINT}=$hint"
         }
     }
 
@@ -451,8 +352,51 @@ internal sealed class Destination(
 
 internal sealed class Route {
 
+    data object Onboarding {
+        @Serializable
+        data object VaultCreation
+
+        @Serializable
+        data object VaultCreationSummary
+
+        @Serializable
+        data class VaultBackup(
+            val vaultId: VaultId,
+            val pubKeyEcdsa: String,
+            val email: String?,
+            val vaultType: VaultInfo.VaultType,
+            val tssAction: TssAction,
+        )
+    }
+
     @Serializable
     data object Secret : Route()
+
+    // transactions
+
+    // select asset / network
+    @Serializable
+    data class SelectAsset(
+        val vaultId: VaultId,
+        val preselectedNetworkId: ChainId,
+        val networkFilters: SelectNetwork.Filters,
+        val requestId: String,
+    )
+
+    @Serializable
+    data class SelectNetwork(
+        val vaultId: VaultId,
+        val selectedNetworkId: ChainId,
+        val requestId: String,
+        val filters: Filters,
+    ) {
+        @Serializable
+        enum class Filters {
+            SwapAvailable,
+        }
+    }
+
+    // vault creation / keygen
 
     @Serializable
     data object ChooseVaultType
@@ -472,17 +416,25 @@ internal sealed class Route {
 
         // required only by fast vault
         @Serializable
-        data class Email(val name: String)
+        data class Email(val name: String,
+                         val tssAction: TssAction,
+                         val vaultId: VaultId? = null)
+
         @Serializable
         data class Password(
             val name: String,
             val email: String,
+            val tssAction: TssAction,
+            val vaultId: VaultId? = null,
         )
+
         @Serializable
         data class PasswordHint(
             val name: String,
             val email: String,
             val password: String,
+            val tssAction: TssAction,
+            val vaultId: VaultId? = null,
         )
     }
 
@@ -532,27 +484,12 @@ internal sealed class Route {
 
     }
 
-    data object Onboarding {
-        @Serializable
-        data object VaultCreation
-
-        @Serializable
-        data object VaultCreationSummary
-
-        @Serializable
-        data class VaultBackup(
-            val vaultId: VaultId,
-            val pubKeyEcdsa: String,
-            val email: String?,
-            val vaultType: VaultInfo.VaultType,
-        )
-    }
-
     @Serializable
     data class FastVaultVerification(
         val vaultId: VaultId,
         val pubKeyEcdsa: String,
         val email: String,
+        val tssAction: TssAction,
     )
 
     @Serializable
@@ -570,11 +507,13 @@ internal sealed class Route {
 
     @Serializable
     data class VaultBackupSummary(
+        val vaultId: VaultId,
         val vaultType: VaultInfo.VaultType,
     )
 
     @Serializable
     data class VaultConfirmation(
+        val vaultId: VaultId,
         val vaultType: VaultInfo.VaultType,
     )
 

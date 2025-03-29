@@ -19,13 +19,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: gradle
-
       - name: git submodule update
         run: git submodule update --init --recursive
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
       - name: Build with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.TRUSTWALLET_PAT }}

@@ -40,15 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -56,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -187,26 +180,7 @@ internal fun ScanQrScreen(
                     roundedCorners = roundedCorners,
                     onSuccess = onSuccess,
                 )
-                Image(
-                    modifier = Modifier
-                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                        .drawWithContent {
-                            val colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.5f),
-                                Color.Transparent
-                            )
-                            drawContent()
-                            drawRect(
-                                brush = Brush.verticalGradient(colors),
-                                blendMode = BlendMode.DstIn
-                            )
-                        }
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.FillWidth,
-                    painter = painterResource(id = R.drawable.scan_background),
-                    contentDescription = null,
-                )
+
                 Image(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -287,8 +261,7 @@ internal fun ScanQrScreen(
 private fun QrCameraScreen(
     roundedCorners: Boolean = false,
     onSuccess: (List<Barcode>) -> Unit,
-
-    ) {
+) {
     val localContext = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember {
@@ -302,14 +275,16 @@ private fun QrCameraScreen(
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize().let {
-            if (roundedCorners) it.clip(RoundedCornerShape(15.dp,15.dp, 0.dp, 0.dp)) else it
-        },
+        modifier = Modifier
+            .fillMaxSize()
+            .let {
+                if (roundedCorners) it.clip(RoundedCornerShape(15.dp, 15.dp, 0.dp, 0.dp)) else it
+            },
         factory = { context ->
             val previewView = PreviewView(context)
             val resolutionStrategy = ResolutionStrategy(
                 Size(1200, 1200),
-                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
             )
             val resolutionSelector = ResolutionSelector.Builder()
                 .setResolutionStrategy(resolutionStrategy)
@@ -326,6 +301,7 @@ private fun QrCameraScreen(
 
             val imageAnalysis = ImageAnalysis.Builder()
                 .setResolutionSelector(resolutionSelector)
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             imageAnalysis.setAnalyzer(
                 ContextCompat.getMainExecutor(context),

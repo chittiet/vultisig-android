@@ -95,6 +95,8 @@ internal fun Coins.getCoinLogo(logoName: String): ImageModel {
         "rkuji" -> R.drawable.rkuji
         "tron" -> R.drawable.tron
         "lvn" -> R.drawable.lvn
+        "fuzion" -> R.drawable.fuzion
+        "vult" -> R.drawable.vult
         else -> logoName
     }
 }

@@ -17,8 +17,8 @@ android {
         applicationId = "com.vultisig.wallet"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = 35
-        versionCode = 41
-        versionName = "1.0.41"
+        versionCode = 47
+        versionName = "1.0.47"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -34,13 +34,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
     }
     buildFeatures {
         compose = true
@@ -61,6 +54,10 @@ android {
         absolutePaths = false
         lintConfig = file("$rootDir/config/lint/lint.xml")
     }
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {

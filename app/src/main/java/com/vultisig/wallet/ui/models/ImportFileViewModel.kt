@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.vultisig.wallet.R
 import com.vultisig.wallet.data.common.fileContent
 import com.vultisig.wallet.data.common.fileName
+import com.vultisig.wallet.data.models.SigningLibType
 import com.vultisig.wallet.data.models.Vault
 import com.vultisig.wallet.data.repositories.VaultDataStoreRepository
 import com.vultisig.wallet.data.usecases.DiscoverTokenUseCase
@@ -17,7 +18,6 @@ import com.vultisig.wallet.data.usecases.SaveVaultUseCase
 import com.vultisig.wallet.ui.navigation.Destination
 import com.vultisig.wallet.ui.navigation.NavigationOptions
 import com.vultisig.wallet.ui.navigation.Navigator
-import com.vultisig.wallet.ui.utils.SnackbarFlow
 import com.vultisig.wallet.ui.utils.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,6 +33,8 @@ internal data class ImportFileState(
     val fileUri: Uri? = null,
     val fileName: String? = null,
     val fileContent: String? = null,
+
+    val error: UiText? = null,
     val showPasswordPrompt: Boolean = false,
     val password: String? = null,
     val isPasswordObfuscated: Boolean = true,
@@ -49,7 +51,6 @@ internal class ImportFileViewModel @Inject constructor(
     private val vaultDataStoreRepository: VaultDataStoreRepository,
     private val saveVault: SaveVaultUseCase,
     private val parseVaultFromString: ParseVaultFromStringUseCase,
-    private val snackbarFlow: SnackbarFlow,
     private val discoverToken: DiscoverTokenUseCase,
 ) : ViewModel() {
     val uiModel = MutableStateFlow(ImportFileState())
@@ -112,6 +113,12 @@ internal class ImportFileViewModel @Inject constructor(
     }
 
     private suspend fun insertVaultToDb(vault: Vault) {
+        // if the backup didn't set libtype correctly , then we need a way to override it manually
+        // when the backup file has share\d+of\d+ in the filename, then it's a DKLS vault
+        val regex = "share\\d+of\\d+".toRegex()
+        if(uiModel.value.fileName?.contains(regex) == true) {
+            vault.libType = SigningLibType.DKLS
+        }
         saveVault(vault, false)
         vaultDataStoreRepository.setBackupStatus(vault.id, true)
         discoverToken(vault.id, null)
@@ -121,13 +128,6 @@ internal class ImportFileViewModel @Inject constructor(
             ),
             opts = NavigationOptions(clearBackStack = true)
         )
-    }
-
-
-    fun removeSelectedFile() {
-        uiModel.update {
-            it.copy(fileUri = null, fileName = null, fileContent = null)
-        }
     }
 
     fun saveFileToAppDir() {
@@ -147,10 +147,21 @@ internal class ImportFileViewModel @Inject constructor(
             val fileName = uri.fileName(context)
             val ext = fileName.substringAfterLast(".").lowercase()
             if (!FILE_ALLOWED_EXTENSIONS.contains(ext)) {
-                snackbarFlow.showMessage(context.getString(R.string.import_file_not_supported))
+                uiModel.update {
+                    it.copy(
+                        fileUri = null,
+                        fileName = null,
+                        fileContent = null,
+                        error = UiText.StringResource(R.string.import_file_not_supported)
+                    )
+                }
             } else {
                 uiModel.update {
-                    it.copy(fileUri = uri, fileName = fileName)
+                    it.copy(
+                        fileUri = uri,
+                        fileName = fileName,
+                        error = null,
+                    )
                 }
             }
         }

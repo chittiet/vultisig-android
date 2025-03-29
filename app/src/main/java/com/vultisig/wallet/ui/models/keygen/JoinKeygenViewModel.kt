@@ -24,6 +24,7 @@ import com.vultisig.wallet.data.models.proto.v1.ReshareMessageProto
 import com.vultisig.wallet.data.repositories.VaultRepository
 import com.vultisig.wallet.data.usecases.DecompressQrUseCase
 import com.vultisig.wallet.ui.navigation.Destination
+import com.vultisig.wallet.ui.navigation.NavigationOptions
 import com.vultisig.wallet.ui.navigation.Navigator
 import com.vultisig.wallet.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -90,7 +91,7 @@ internal class JoinKeygenViewModel @Inject constructor(
 
                 val existingVaults = vaultRepository.getAll()
 
-                val session = when (deepLink.getTssAction()) {
+                val session = when (val action = deepLink.getTssAction()) {
                     TssAction.KEYGEN -> {
                         val message = mapKeygenMessageFromProto(
                             protoBuf.decodeFromByteArray<KeygenMessageProto>(bytes)
@@ -121,7 +122,7 @@ internal class JoinKeygenViewModel @Inject constructor(
                         )
                     }
 
-                    TssAction.ReShare -> {
+                    TssAction.ReShare, TssAction.Migrate -> {
                         val message = mapReshareMessageFromProto(
                             protoBuf.decodeFromByteArray<ReshareMessageProto>(bytes)
                         )
@@ -150,13 +151,15 @@ internal class JoinKeygenViewModel @Inject constructor(
 
                         Session(
                             sessionId = message.sessionID,
-                            action = TssAction.ReShare,
+                            action = action,
                             hexChainCode = existingVault?.hexChainCode ?: message.hexChainCode,
                             serviceName = message.serviceName,
                             useVultisigRelay = message.useVultisigRelay,
                             encryptionKeyHex = message.encryptionKeyHex,
                             vaultName = existingVault?.name ?: message.vaultName,
-                            libType = message.libType,
+                            libType = if (action == TssAction.Migrate)
+                                SigningLibType.DKLS
+                            else message.libType,
                             localPartyId = existingVault?.localPartyID
                                 ?: Utils.deviceName(context),
                             serverUrl = serverUrl,
@@ -222,7 +225,7 @@ internal class JoinKeygenViewModel @Inject constructor(
 
 
                     navigator.route(
-                        Route.Keygen.Generating(
+                        route = Route.Keygen.Generating(
                             action = session.action,
                             sessionId = session.sessionId,
                             serverUrl = session.serverUrl,
@@ -241,6 +244,10 @@ internal class JoinKeygenViewModel @Inject constructor(
                             email = null,
                             password = null,
                             hint = null,
+                        ),
+                        opts = NavigationOptions(
+                            popUpToRoute = Route.Keygen.Join::class,
+                            inclusive = true,
                         )
                     )
 

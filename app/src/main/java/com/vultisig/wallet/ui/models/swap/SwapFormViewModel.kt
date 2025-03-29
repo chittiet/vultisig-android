@@ -45,6 +45,7 @@ import com.vultisig.wallet.ui.models.send.SendSrc
 import com.vultisig.wallet.ui.models.send.TokenBalanceUiModel
 import com.vultisig.wallet.ui.navigation.Destination
 import com.vultisig.wallet.ui.navigation.Navigator
+import com.vultisig.wallet.ui.navigation.Route
 import com.vultisig.wallet.ui.navigation.SendDst
 import com.vultisig.wallet.ui.utils.UiText
 import com.vultisig.wallet.ui.utils.asUiText
@@ -441,11 +442,16 @@ internal class SwapFormViewModel @Inject constructor(
         targetArg: String,
     ) {
         viewModelScope.launch {
-            navigator.navigate(
-                Destination.SelectToken(
+            navigator.route(
+                Route.SelectAsset(
                     vaultId = vaultId ?: return@launch,
-                    targetArg = targetArg,
-                    swapSelect = true,
+                    requestId = targetArg,
+                    preselectedNetworkId = (when (targetArg) {
+                        Destination.Swap.ARG_SELECTED_SRC_TOKEN_ID -> selectedSrc.value?.address?.chain
+                        Destination.Swap.ARG_SELECTED_DST_TOKEN_ID -> selectedDst.value?.address?.chain
+                        else -> Chain.ThorChain
+                    })?.id ?: Chain.ThorChain.id,
+                    networkFilters = Route.SelectNetwork.Filters.SwapAvailable,
                 )
             )
             checkTokenSelectionResponse(targetArg)
@@ -453,7 +459,7 @@ internal class SwapFormViewModel @Inject constructor(
     }
 
     private suspend fun checkTokenSelectionResponse(targetArg: String) {
-        val result = requestResultRepository.request<Coin>(targetArg).id
+        val result = requestResultRepository.request<Coin>(targetArg)?.id
         if (targetArg == Destination.Swap.ARG_SELECTED_SRC_TOKEN_ID) {
             selectedSrcId.value = result
         } else {
@@ -638,29 +644,19 @@ internal class SwapFormViewModel @Inject constructor(
                         val provider = swapQuoteRepository.resolveProvider(srcToken, dstToken)
                             ?: throw SwapException.SwapIsNotSupported("Swap is not supported for this pair")
 
-                        this@SwapFormViewModel.provider=provider
+                        this@SwapFormViewModel.provider = provider
 
 
-                        val hasUserSetTokenValue = srcTokenValue != null
-
-                        val tokenValue = srcTokenValue?.let {
-                            convertTokenAndValueToTokenValue(srcToken, srcTokenValue)
-                        } ?: TokenValue(
-                            1.toBigInteger()
-                                .multiply(BigInteger.TEN.pow(srcToken.decimal)),
-                            srcToken.ticker,
-                            srcToken.decimal
-                        )
+                        val tokenValue = convertTokenAndValueToTokenValue(srcToken, srcTokenValue)
 
                         val currency = appCurrencyRepository.currency.first()
 
-                        val srcFiatValue = if (hasUserSetTokenValue) {
+                        val srcFiatValue =
                             convertTokenValueToFiat(srcToken, tokenValue, currency)
-                        } else null
 
-                        val srcFiatValueText = srcFiatValue?.let {
+                        val srcFiatValueText = srcFiatValue.let {
                             fiatValueToString.map(it)
-                        } ?: zeroValueCurrencyToString.map(currency)
+                        }
 
                         val srcNativeToken = tokenRepository.getNativeToken(srcToken.chain.id)
 
@@ -696,7 +692,7 @@ internal class SwapFormViewModel @Inject constructor(
 
                                 val recommendedMinAmountTokenString =
                                     mapTokenValueToDecimalUiString(recommendedMinAmountToken)
-                                amount?.let {
+                                amount.let {
                                     uiState.update {
                                         if (amount < recommendedMinAmountToken.decimal) {
                                             it.copy(
@@ -716,11 +712,10 @@ internal class SwapFormViewModel @Inject constructor(
                                     convertTokenValueToFiat(dstToken, quote.fees, currency)
                                 swapFeeFiat.value = fiatFees
 
-                                val estimatedDstTokenValue = if (hasUserSetTokenValue) {
+                                val estimatedDstTokenValue =
                                     mapTokenValueToDecimalUiString(
                                         quote.expectedDstValue
                                     )
-                                } else ""
 
                                 val estimatedDstFiatValue = convertTokenValueToFiat(
                                     dstToken,
@@ -784,9 +779,8 @@ internal class SwapFormViewModel @Inject constructor(
                                     convertTokenValueToFiat(srcNativeToken, tokenFees, currency)
                                 swapFeeFiat.value = fiatFees
 
-                                val estimatedDstTokenValue = if (hasUserSetTokenValue) {
+                                val estimatedDstTokenValue =
                                     mapTokenValueToDecimalUiString(expectedDstValue)
-                                } else ""
 
                                 val estimatedDstFiatValue = convertTokenValueToFiat(
                                     dstToken,
@@ -843,9 +837,8 @@ internal class SwapFormViewModel @Inject constructor(
                                 val fiatFees =
                                     convertTokenValueToFiat(srcToken, tokenFees, currency)
                                 swapFeeFiat.value = fiatFees
-                                val estimatedDstTokenValue = if (hasUserSetTokenValue) {
+                                val estimatedDstTokenValue =
                                     mapTokenValueToDecimalUiString(expectedDstValue)
-                                } else ""
 
                                 val estimatedDstFiatValue = convertTokenValueToFiat(
                                     dstToken,

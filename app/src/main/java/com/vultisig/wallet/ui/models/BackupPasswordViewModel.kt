@@ -18,6 +18,7 @@ import com.vultisig.wallet.R
 import com.vultisig.wallet.data.common.fileName
 import com.vultisig.wallet.data.common.saveContentToUri
 import com.vultisig.wallet.data.mappers.MapVaultToProto
+import com.vultisig.wallet.data.models.SigningLibType
 import com.vultisig.wallet.data.models.Vault
 import com.vultisig.wallet.data.models.getVaultPart
 import com.vultisig.wallet.data.repositories.VaultDataStoreRepository
@@ -67,7 +68,7 @@ internal class BackupPasswordViewModel @Inject constructor(
 
     private val args = savedStateHandle.toRoute<Route.BackupPassword>()
 
-    private val vaultId: String = args.vaultId
+    private val vaultId = args.vaultId
     private val vaultType = args.vaultType
 
     private val vault = MutableStateFlow<Vault?>(null)
@@ -139,9 +140,15 @@ internal class BackupPasswordViewModel @Inject constructor(
     }
 
     private fun generateFileName(vault: Vault): String {
+        val shareNamePart = when (vault.libType) {
+            SigningLibType.GG20 -> "part"
+            SigningLibType.DKLS -> "share"
+        }
+
         val fileName =
             "${vault.name}-${vault.pubKeyECDSA.takeLast(4)}" +
-                    "-part${vault.getVaultPart()}of${vault.signers.size}.vult"
+                    "-$shareNamePart${vault.getVaultPart()}of${vault.signers.size}.vult"
+
         return fileName
     }
 
@@ -230,6 +237,7 @@ internal class BackupPasswordViewModel @Inject constructor(
                 if (vaultType != null) {
                     navigator.route(
                         Route.VaultConfirmation(
+                            vaultId = vaultId,
                             vaultType = vaultType,
                         )
                     )

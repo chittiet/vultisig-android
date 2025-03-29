@@ -55,6 +55,21 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+internal sealed interface KeygenState {
+    data object CreatingInstance : KeygenState
+    data object KeygenECDSA : KeygenState
+    data object KeygenEdDSA : KeygenState
+    data object ReshareECDSA : KeygenState
+    data object ReshareEdDSA : KeygenState
+    data object Success : KeygenState
+
+    data class Error(
+        val title: UiText?,
+        val message: UiText,
+    ) : KeygenState
+}
+
+
 internal data class KeygenUiModel(
     val progress: Float = 0f,
     val isSuccess: Boolean = false,
@@ -113,21 +128,6 @@ internal class KeygenViewModel @Inject constructor(
 
     private val isReshareMode: Boolean = action == TssAction.ReShare
 
-    private val dklsKeygen = DKLSKeygen(
-        localPartyId = vault.localPartyID,
-        keygenCommittee = keygenCommittee,
-        mediatorURL = serverUrl,
-        sessionID = sessionId,
-        encryptionKeyHex = encryptionKeyHex,
-        isInitiateDevice = isInitiatingDevice,
-        encryption = encryption,
-        sessionApi = sessionApi,
-
-        action = action,
-        oldCommittee = oldCommittee,
-        vault = vault,
-    )
-
     init {
         generateKey()
     }
@@ -184,8 +184,49 @@ internal class KeygenViewModel @Inject constructor(
 
         updateStep(KeygenState.KeygenECDSA)
 
+        var localUiEcdsa = ""
+        var localUiEddsa = ""
+
+        if (action == TssAction.Migrate) {
+            try {
+                // Verify both key shares exist before attempting migration
+                val ecdsaShare = vault.getKeyshare(vault.pubKeyECDSA)
+                val eddsaShare = vault.getKeyshare(vault.pubKeyEDDSA)
+
+                if (ecdsaShare == null || eddsaShare == null) {
+                    throw RuntimeException("Missing key shares required for migration")
+                }
+
+                val ecdsaUIResp = Tss.getLocalUIEcdsa(ecdsaShare)
+                localUiEcdsa = ecdsaUIResp.padEnd(64, '0')
+
+                val eddsaUIResp = Tss.getLocalUIEddsa(eddsaShare)
+                localUiEddsa = eddsaUIResp.padEnd(64, '0')
+
+            } catch (e: Exception) {
+                error("Can't get local ui for migration")
+            }
+        }
+
+        val dklsKeygen = DKLSKeygen(
+            localPartyId = vault.localPartyID,
+            keygenCommittee = keygenCommittee,
+            mediatorURL = serverUrl,
+            sessionID = sessionId,
+            encryptionKeyHex = encryptionKeyHex,
+            isInitiateDevice = isInitiatingDevice,
+            encryption = encryption,
+            sessionApi = sessionApi,
+            hexChainCode = vault.hexChainCode,
+            localUi = localUiEcdsa,
+
+            action = action,
+            oldCommittee = oldCommittee,
+            vault = vault,
+        )
+
         when (action) {
-            TssAction.KEYGEN -> dklsKeygen.dklsKeygenWithRetry(0)
+            TssAction.KEYGEN, TssAction.Migrate -> dklsKeygen.dklsKeygenWithRetry(0)
             TssAction.ReShare -> dklsKeygen.DKLSReshareWithRetry(0)
         }
 
@@ -204,11 +245,13 @@ internal class KeygenViewModel @Inject constructor(
             encryption = encryption,
             sessionApi = sessionApi,
             setupMessage = dklsKeygen.setupMessage,
-            isInitiatingDevice = isInitiatingDevice
+            isInitiatingDevice = isInitiatingDevice,
+            hexChainCode = vault.hexChainCode,
+            localUi = localUiEddsa
         )
 
         when (action) {
-            TssAction.KEYGEN -> schnorr.schnorrKeygenWithRetry(0)
+            TssAction.KEYGEN, TssAction.Migrate -> schnorr.schnorrKeygenWithRetry(0)
             TssAction.ReShare -> schnorr.schnorrReshareWithRetry(0)
         }
 
@@ -228,6 +271,10 @@ internal class KeygenViewModel @Inject constructor(
                 keyShare = keyshareEddsa.keyshare
             )
         )
+
+        if (action == TssAction.Migrate) {
+            vault.libType = SigningLibType.DKLS
+        }
 
         sessionApi.markLocalPartyComplete(
             serverUrl,
@@ -263,7 +310,7 @@ internal class KeygenViewModel @Inject constructor(
                 messagePuller.pullMessages(null)
 
                 when (action) {
-                    TssAction.KEYGEN -> {
+                    TssAction.KEYGEN, TssAction.Migrate -> {
                         // generate ECDSA
                         updateStep(KeygenState.KeygenECDSA)
                         val keygenRequest = tss.KeygenRequest()
@@ -365,21 +412,23 @@ internal class KeygenViewModel @Inject constructor(
         val vaultId = vault.id
 
         val password = args.password
-        if (args.email != null && args.password != null) {
+        if (args.email != null && password != null) {
             temporaryVaultRepository.add(
                 TempVaultDto(
                     vault = vault,
                     email = args.email,
-                    password = args.password,
+                    password = password,
                     hint = args.hint,
                 )
             )
 
-            if (password != null && context.canAuthenticateBiometric()) {
+            if (context.canAuthenticateBiometric()) {
                 vaultPasswordRepository.savePassword(vaultId, password)
             }
         } else {
-            saveVault(vault, isReshareMode)
+            val shouldOverrideVault = isReshareMode || action == TssAction.Migrate
+
+            saveVault(vault, shouldOverrideVault)
 
             vaultDataStoreRepository.setBackupStatus(vaultId = vaultId, false)
         }
@@ -397,7 +446,8 @@ internal class KeygenViewModel @Inject constructor(
                 email = args.email,
                 vaultType = if (vault.isFastVault())
                     VaultType.Fast
-                else VaultType.Secure
+                else VaultType.Secure,
+                tssAction = action,
             ),
             opts = NavigationOptions(
                 popUpToRoute = Route.Keygen.Generating::class,

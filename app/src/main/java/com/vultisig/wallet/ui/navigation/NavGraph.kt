@@ -6,8 +6,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
-import com.vultisig.wallet.ui.models.keygen.KeygenFlowView
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_ADDRESS
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_CHAIN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_DST_TOKEN_ID
@@ -16,8 +16,6 @@ import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_REQUEST_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_SRC_TOKEN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_TOKEN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_VAULT_ID
-import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_VAULT_NAME
-import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_VAULT_SETUP_TYPE
 import com.vultisig.wallet.ui.navigation.Destination.Home.Companion.ARG_SHOW_VAULT_LIST
 import com.vultisig.wallet.ui.navigation.Destination.SelectToken.Companion.ARG_SWAP_SELECT
 import com.vultisig.wallet.ui.navigation.Destination.SelectToken.Companion.ARG_TARGET_ARG
@@ -28,6 +26,9 @@ import com.vultisig.wallet.ui.navigation.Route.FastVaultVerification
 import com.vultisig.wallet.ui.navigation.Route.Keygen
 import com.vultisig.wallet.ui.navigation.Route.Onboarding
 import com.vultisig.wallet.ui.navigation.Route.Secret
+import com.vultisig.wallet.ui.navigation.Route.SelectAsset
+import com.vultisig.wallet.ui.navigation.Route.SelectNetwork
+import com.vultisig.wallet.ui.navigation.Route.VaultBackupSummary
 import com.vultisig.wallet.ui.navigation.Route.VaultConfirmation
 import com.vultisig.wallet.ui.navigation.Route.VaultInfo
 import com.vultisig.wallet.ui.navigation.Screen.AddChainAccount
@@ -36,7 +37,6 @@ import com.vultisig.wallet.ui.screens.ChainSelectionScreen
 import com.vultisig.wallet.ui.screens.ChainTokensScreen
 import com.vultisig.wallet.ui.screens.CustomTokenScreen
 import com.vultisig.wallet.ui.screens.ImportFileScreen
-import com.vultisig.wallet.ui.screens.NamingVaultScreen
 import com.vultisig.wallet.ui.screens.QrAddressScreen
 import com.vultisig.wallet.ui.screens.SecretScreen
 import com.vultisig.wallet.ui.screens.SelectTokenScreen
@@ -56,8 +56,6 @@ import com.vultisig.wallet.ui.screens.keygen.FastVaultPasswordHintScreen
 import com.vultisig.wallet.ui.screens.keygen.FastVaultPasswordScreen
 import com.vultisig.wallet.ui.screens.keygen.FastVaultVerificationScreen
 import com.vultisig.wallet.ui.screens.keygen.JoinKeygenScreen
-import com.vultisig.wallet.ui.screens.keygen.KeygenEmailScreen
-import com.vultisig.wallet.ui.screens.keygen.KeygenPasswordScreen
 import com.vultisig.wallet.ui.screens.keygen.KeygenScreen
 import com.vultisig.wallet.ui.screens.keygen.NameVaultScreen
 import com.vultisig.wallet.ui.screens.keygen.StartScreen
@@ -73,6 +71,8 @@ import com.vultisig.wallet.ui.screens.scan.ARG_QR_CODE
 import com.vultisig.wallet.ui.screens.scan.ScanQrAndJoin
 import com.vultisig.wallet.ui.screens.scan.ScanQrErrorScreen
 import com.vultisig.wallet.ui.screens.scan.ScanQrScreen
+import com.vultisig.wallet.ui.screens.select.SelectAssetScreen
+import com.vultisig.wallet.ui.screens.select.SelectNetworkScreen
 import com.vultisig.wallet.ui.screens.send.SendScreen
 import com.vultisig.wallet.ui.screens.settings.CurrencyUnitSettingScreen
 import com.vultisig.wallet.ui.screens.settings.DefaultChainSetting
@@ -123,76 +123,6 @@ internal fun SetupNavGraph(
             )
         ) {
             HomeScreen(navController)
-        }
-
-        composable(
-            route = Destination.KeygenEmail.STATIC_ROUTE,
-            arguments = listOf(
-                navArgument(ARG_VAULT_SETUP_TYPE) {
-                    type = NavType.IntType
-                },
-                navArgument(ARG_VAULT_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(ARG_VAULT_NAME) {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) {
-            KeygenEmailScreen(navController)
-        }
-
-        composable(
-            route = Destination.KeygenPassword.STATIC_ROUTE,
-            arguments = listOf(
-                navArgument(ARG_VAULT_SETUP_TYPE) {
-                    type = NavType.IntType
-                },
-                navArgument(ARG_VAULT_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(ARG_VAULT_NAME) {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) {
-            KeygenPasswordScreen(navController)
-        }
-
-        composable(
-            route = Destination.KeygenFlow.STATIC_ROUTE,
-            arguments = listOf(
-                navArgument(Destination.KeygenFlow.ARG_VAULT_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(Destination.KeygenFlow.ARG_VAULT_NAME) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(ARG_VAULT_SETUP_TYPE) {
-                    type = NavType.IntType
-                    defaultValue = 0
-                },
-                navArgument(Destination.ARG_EMAIL) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(Destination.ARG_PASSWORD) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(Destination.KeygenFlow.ARG_PASSWORD_HINT) {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) {
-            KeygenFlowView(navController)
         }
 
         composable(route = Destination.ImportVault.route) {
@@ -510,12 +440,6 @@ internal fun SetupNavGraph(
         }
 
         composable(
-            route = Destination.NamingVault.STATIC_ROUTE,
-        ) {
-            NamingVaultScreen(navController = navController)
-        }
-
-        composable(
             route = Destination.ConfirmDelete.STATIC_ROUTE,
         ) {
             ConfirmDeleteScreen(navController)
@@ -639,12 +563,23 @@ internal fun SetupNavGraph(
             BackupPasswordScreen(navController)
         }
 
-        composable<Route.VaultBackupSummary> {
+        composable<VaultBackupSummary> {
             VaultBackupSummaryScreen()
         }
 
         composable<VaultConfirmation> {
             VaultConfirmationScreen()
+        }
+
+        // transactions
+
+        // select asset / network
+        dialog<SelectAsset> {
+            SelectAssetScreen()
+        }
+
+        dialog<SelectNetwork> {
+            SelectNetworkScreen()
         }
     }
 }

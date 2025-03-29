@@ -314,6 +314,7 @@ internal class SendFormViewModel @Inject constructor(
                 )
             )
             val address: AddressBookEntry = requestResultRepository.request(REQUEST_ADDRESS_ID)
+                ?: return@launch
 
             val vaultId = vaultId
             val selectedChain = address.chain
@@ -456,7 +457,7 @@ internal class SendFormViewModel @Inject constructor(
                         )
                     }
                 }
-                
+
                 val specific = blockChainSpecificRepository
                     .getSpecific(
                         chain,
@@ -866,7 +867,10 @@ internal class SendFormViewModel @Inject constructor(
                             if (gasSettings is GasSettings.Eth)
                                 gasSettings.gasLimit
                             else
-                                (specific.value?.blockChainSpecific as BlockChainSpecific.Ethereum).gasLimit
+                                (specific.value?.blockChainSpecific
+                                        as? BlockChainSpecific.Ethereum)
+                                    ?.gasLimit
+                                    ?: BigInteger.valueOf(1)
                         } else {
                             BigInteger.valueOf(1)
                         },

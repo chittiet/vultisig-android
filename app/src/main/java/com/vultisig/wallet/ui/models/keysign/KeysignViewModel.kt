@@ -14,7 +14,6 @@ import com.vultisig.wallet.data.common.md5
 import com.vultisig.wallet.data.common.toHexBytes
 import com.vultisig.wallet.data.keygen.DKLSKeysign
 import com.vultisig.wallet.data.keygen.SchnorrKeysign
-import com.vultisig.wallet.data.models.SignedTransactionResult
 import com.vultisig.wallet.data.models.SigningLibType
 import com.vultisig.wallet.data.models.TssKeyType
 import com.vultisig.wallet.data.models.Vault
@@ -63,7 +62,9 @@ internal sealed class KeysignState {
 internal sealed interface TransactionTypeUiModel {
     data class Send(val transactionUiModel: TransactionUiModel) : TransactionTypeUiModel
     data class Swap(val swapTransactionUiModel: SwapTransactionUiModel) : TransactionTypeUiModel
-    data class Deposit(val depositTransactionUiModel: DepositTransactionUiModel) : TransactionTypeUiModel
+    data class Deposit(val depositTransactionUiModel: DepositTransactionUiModel) :
+        TransactionTypeUiModel
+
     data class SignMessage(val model: SignMessageTransactionUiModel) : TransactionTypeUiModel
 }
 
@@ -123,65 +124,73 @@ internal class KeysignViewModel(
     }
 
     private suspend fun startKeysignDkls() {
-        val keysignPayload = keysignPayload ?: error("Keysign payload is null")
-
-        when (keyType){
-            TssKeyType.ECDSA -> {
-                currentState.value = KeysignState.KeysignECDSA
-
-                val dkls = DKLSKeysign(
-                    vault = vault,
-                    keysignCommittee = keysignCommittee,
-                    mediatorURL = serverUrl,
-                    sessionID = sessionId,
-                    encryptionKeyHex = encryptionKeyHex,
-                    messageToSign = messagesToSign,
-                    chainPath = keysignPayload.coin.coinType.derivationPath(),
-                    isInitiateDevice = isInitiatingDevice,
-                    sessionApi = sessionApi,
-                    encryption = encryption,
-                )
-
-                dkls.DKLSKeysignWithRetry(0)
-
-                this.signatures += dkls.signatures
-
-                if (signatures.isEmpty()) {
-                    error("Failed to sign transaction, signatures empty")
-                }
-            }
-            TssKeyType.EDDSA -> {
-                currentState.value = KeysignState.KeysignEdDSA
-
-                val schnorr = SchnorrKeysign(
-                    vault = vault,
-                    keysignCommittee = keysignCommittee,
-                    mediatorURL = serverUrl,
-                    sessionID = sessionId,
-                    encryptionKeyHex = encryptionKeyHex,
-                    messageToSign = messagesToSign,
-                    isInitiateDevice = isInitiatingDevice,
-                    sessionApi = sessionApi,
-                    encryption = encryption,
-                )
-
-                schnorr.keysignWithRetry(0)
-
-                this.signatures += schnorr.signatures
-
-                if (signatures.isEmpty()) {
-                    error("Failed to sign transaction, signatures empty")
-                }
-            }
+        if (keysignPayload == null && customMessagePayload == null) {
+            error("Keysign payload is null")
         }
+        try {
+            when (keyType) {
+                TssKeyType.ECDSA -> {
+                    currentState.value = KeysignState.KeysignECDSA
 
-        Timber.d("All messages signed, broadcasting transaction")
+                    val dkls = DKLSKeysign(
+                        vault = vault,
+                        keysignCommittee = keysignCommittee,
+                        mediatorURL = serverUrl,
+                        sessionID = sessionId,
+                        encryptionKeyHex = encryptionKeyHex,
+                        messageToSign = messagesToSign,
+                        chainPath = this.keysignPayload?.coin?.coinType?.derivationPath()
+                            ?: "m/44'/60'/0'/0/0",
+                        isInitiateDevice = isInitiatingDevice,
+                        sessionApi = sessionApi,
+                        encryption = encryption,
+                    )
 
-        broadcastTransaction()
-        checkThorChainTxResult()
+                    dkls.DKLSKeysignWithRetry(0)
 
-        currentState.value = KeysignState.KeysignFinished
-        isNavigateToHome = true
+                    this.signatures += dkls.signatures
+                    if (signatures.isEmpty()) {
+                        error("Failed to sign transaction, signatures empty")
+                    }
+                    calculateCustomMessageSignature(this.signatures.values.first())
+                }
+
+                TssKeyType.EDDSA -> {
+                    currentState.value = KeysignState.KeysignEdDSA
+
+                    val schnorr = SchnorrKeysign(
+                        vault = vault,
+                        keysignCommittee = keysignCommittee,
+                        mediatorURL = serverUrl,
+                        sessionID = sessionId,
+                        encryptionKeyHex = encryptionKeyHex,
+                        messageToSign = messagesToSign,
+                        isInitiateDevice = isInitiatingDevice,
+                        sessionApi = sessionApi,
+                        encryption = encryption,
+                    )
+
+                    schnorr.keysignWithRetry(0)
+
+                    this.signatures += schnorr.signatures
+
+                    if (signatures.isEmpty()) {
+                        error("Failed to sign transaction, signatures empty")
+                    }
+                }
+            }
+
+            Timber.d("All messages signed, broadcasting transaction")
+
+            broadcastTransaction()
+            checkThorChainTxResult()
+
+            currentState.value = KeysignState.KeysignFinished
+            isNavigateToHome = true
+        } catch (e: Exception) {
+            Timber.e(e)
+            currentState.value = KeysignState.Error(e.message ?: "Unknown error")
+        }
     }
 
     @Suppress("ReplaceNotNullAssertionWithElvisReturn")
@@ -220,7 +229,7 @@ internal class KeysignViewModel(
             pullTssMessagesJob?.cancel()
         } catch (e: Exception) {
             Timber.e(e)
-            currentState.value = KeysignState.Error( e.message ?: "Unknown error")
+            currentState.value = KeysignState.Error(e.message ?: "Unknown error")
         }
     }
 
@@ -348,10 +357,12 @@ internal class KeysignViewModel(
         if (txHash != null) {
             this.txHash.value = txHash
             txLink.value = explorerLinkRepository.getTransactionLink(payload.coin.chain, txHash)
-            swapProgressLink.value = explorerLinkRepository.getSwapProgressLink(txHash, payload.swapPayload)
+            swapProgressLink.value =
+                explorerLinkRepository.getSwapProgressLink(txHash, payload.swapPayload)
         }
-        if(approveTxHash.value.isNotEmpty()) {
-            approveTxLink.value = explorerLinkRepository.getTransactionLink(payload.coin.chain, approveTxHash.value)
+        if (approveTxHash.value.isNotEmpty()) {
+            approveTxLink.value =
+                explorerLinkRepository.getTransactionLink(payload.coin.chain, approveTxHash.value)
         }
     }
 
