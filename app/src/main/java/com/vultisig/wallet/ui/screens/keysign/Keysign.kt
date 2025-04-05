@@ -1,8 +1,10 @@
 package com.vultisig.wallet.ui.screens.keysign
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,16 +21,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.play.core.review.ReviewManagerFactory
 import com.vultisig.wallet.R
 import com.vultisig.wallet.ui.components.AppVersionText
-import com.vultisig.wallet.ui.components.DevicesOnSameNetworkHint
 import com.vultisig.wallet.ui.components.KeepScreenOn
 import com.vultisig.wallet.ui.components.UiSpacer
-import com.vultisig.wallet.ui.components.library.UiCirclesLoader
+import com.vultisig.wallet.ui.components.banners.Banner
+import com.vultisig.wallet.ui.components.rive.RiveAnimation
 import com.vultisig.wallet.ui.models.KeySignWrapperViewModel
 import com.vultisig.wallet.ui.models.TransactionUiModel
 import com.vultisig.wallet.ui.models.keysign.KeysignState
 import com.vultisig.wallet.ui.models.keysign.KeysignViewModel
 import com.vultisig.wallet.ui.models.keysign.TransactionTypeUiModel
 import com.vultisig.wallet.ui.screens.TransactionDoneView
+import com.vultisig.wallet.ui.screens.transaction.SwapTransactionOverviewScreen
 import com.vultisig.wallet.ui.theme.Theme
 import com.vultisig.wallet.ui.utils.showReviewPopUp
 
@@ -107,16 +110,33 @@ internal fun KeysignScreen(
     ) {
         when (state) {
             KeysignState.KeysignFinished -> {
-                TransactionDoneView(
-                    transactionHash = txHash,
-                    approveTransactionHash = approveTransactionHash,
-                    transactionLink = transactionLink,
-                    approveTransactionLink = approveTransactionLink,
-                    onComplete = onComplete,
-                    progressLink = progressLink,
-                    onBack = onBack,
-                    transactionTypeUiModel = transactionTypeUiModel,
-                )
+                when (transactionTypeUiModel) {
+                    is TransactionTypeUiModel.Swap -> {
+                        SwapTransactionOverviewScreen(
+                            showToolbar = false,
+                            transactionHash = txHash,
+                            approveTransactionHash = approveTransactionHash,
+                            transactionLink = transactionLink,
+                            approveTransactionLink = approveTransactionLink,
+                            onComplete = onComplete,
+                            progressLink = progressLink ?: "",
+                            onBack = onBack,
+                            transactionTypeUiModel = transactionTypeUiModel.swapTransactionUiModel,
+                        )
+                    }
+                    else -> {
+                        TransactionDoneView(
+                            transactionHash = txHash,
+                            approveTransactionHash = approveTransactionHash,
+                            transactionLink = transactionLink,
+                            approveTransactionLink = approveTransactionLink,
+                            onComplete = onComplete,
+                            progressLink = progressLink,
+                            onBack = onBack,
+                            transactionTypeUiModel = transactionTypeUiModel,
+                        )
+                    }
+                }
             }
 
             is KeysignState.Error -> {
@@ -129,27 +149,45 @@ internal fun KeysignScreen(
             else -> {
                 KeepScreenOn()
 
-                UiSpacer(weight = 1f)
-                Text(
-                    text = text,
-                    color = Theme.colors.neutral0,
-                    style = Theme.menlo.subtitle1,
-                    textAlign = TextAlign.Center,
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = Theme.colors.backgrounds.primary,
+                        )
+                        .padding(
+                            horizontal = 16.dp,
+                            vertical = 24.dp,
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Banner(
+                        text = stringResource(R.string.keysign_make_sure_devices_are_on_the_same_network),
+                    )
 
-                UiSpacer(size = 32.dp)
+                    UiSpacer(weight = 1f)
 
-                UiCirclesLoader()
+                    RiveAnimation(
+                        animation = R.raw.riv_connecting_with_server,
+                        modifier = Modifier
+                            .size(24.dp)
+                    )
 
-                UiSpacer(weight = 1f)
+                    UiSpacer(16.dp)
 
-                DevicesOnSameNetworkHint(
-                    title = stringResource(id = R.string.keysign_screen_keep_devices_on_the_same_wifi_network_with_vultisig_open)
-                )
+                    Text(
+                        text = text,
+                        color = Theme.colors.text.primary,
+                        style = Theme.brockmann.headings.title2,
+                        textAlign = TextAlign.Center,
+                    )
 
-                UiSpacer(size = 60.dp)
+                    UiSpacer(weight = 1f)
 
-                AppVersionText(Modifier.padding(bottom = 24.dp))
+                    UiSpacer(size = 60.dp)
+
+                    AppVersionText()
+                }
             }
         }
     }
