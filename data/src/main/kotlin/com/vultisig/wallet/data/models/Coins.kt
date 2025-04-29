@@ -110,17 +110,6 @@ object Coins {
             isNativeToken = true,
         ),
         Coin(
-            chain = Chain.ThorChain,
-            ticker = "RUNE",
-            logo = "rune",
-            address = "",
-            decimal = 8,
-            hexPublicKey = "",
-            priceProviderID = "thorchain",
-            contractAddress = "",
-            isNativeToken = true,
-        ),
-        Coin(
             chain = Chain.MayaChain,
             ticker = "CACAO",
             logo = "cacao",
@@ -1442,17 +1431,6 @@ object Coins {
             isNativeToken = true,
         ),
         Coin(
-            chain = Chain.GaiaChain,
-            ticker = "ATOM",
-            logo = "atom",
-            address = "",
-            decimal = 6,
-            hexPublicKey = "",
-            priceProviderID = "cosmos",
-            contractAddress = "",
-            isNativeToken = true,
-        ),
-        Coin(
             chain = Chain.Kujira,
             ticker = "KUJI",
             logo = "kuji",
@@ -1695,7 +1673,33 @@ object Coins {
             contractAddress = "",
             isNativeToken = true,
         )
-    ) + terraTokens + terraClassicTokens + tronCoins
+    ) + gaiaTokens + terraTokens + terraClassicTokens + tronCoins + thorTokens
+
+    private val gaiaTokens
+        get() = listOf(
+            Coin(
+                chain = Chain.GaiaChain,
+                ticker = "ATOM",
+                logo = "atom",
+                decimal = 6,
+                priceProviderID = "cosmos",
+                contractAddress = "",
+                isNativeToken = true,
+                address = "",
+                hexPublicKey = "",
+            ),
+            Coin(
+                chain = Chain.GaiaChain,
+                ticker = "KUJI",
+                logo = "kuji",
+                decimal = 6,
+                priceProviderID = "kujira",
+                contractAddress = "ibc/4CC44260793F84006656DD868E017578F827A492978161DA31D7572BCB3F4289",
+                isNativeToken = false,
+                address = "",
+                hexPublicKey = "",
+            )
+        )
 
     private val terraTokens
         get() = listOf(
@@ -1807,6 +1811,32 @@ object Coins {
                 address = "",
                 hexPublicKey = ""
             ),
+        )
+
+    private val thorTokens
+        get() = listOf(
+            Coin(
+                chain = Chain.ThorChain,
+                ticker = "RUNE",
+                logo = "rune",
+                address = "",
+                decimal = 8,
+                hexPublicKey = "",
+                priceProviderID = "thorchain",
+                contractAddress = "",
+                isNativeToken = true,
+            ),
+            Coin(
+                chain = Chain.ThorChain,
+                ticker = "TCY",
+                logo = "tcy",
+                decimal = 8,
+                priceProviderID = "tcy",
+                contractAddress = "",
+                isNativeToken = false,
+                hexPublicKey = "",
+                address = "",
+            )
         )
 
 }

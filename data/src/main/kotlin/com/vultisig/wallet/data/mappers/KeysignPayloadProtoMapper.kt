@@ -130,7 +130,8 @@ internal class KeysignPayloadProtoMapperImpl @Inject constructor() : KeysignPayl
                         accountNumber = BigInteger(it.accountNumber.toString()),
                         sequence = BigInteger(it.sequence.toString()),
                         gas = BigInteger(it.gas.toString()),
-                        ibcDenomTraces = it.ibcDenomTraces
+                        ibcDenomTraces = it.ibcDenomTraces,
+                        transactionType = it.transactionType,
                     )
                 }
 
@@ -172,6 +173,7 @@ internal class KeysignPayloadProtoMapperImpl @Inject constructor() : KeysignPayl
                 from.rippleSpecific != null -> from.rippleSpecific.let {
                     BlockChainSpecific.Ripple(
                         sequence = it.sequence,
+                        lastLedgerSequence = it.lastLedgerSequence,
                         gas = it.gas,
                     )
                 }

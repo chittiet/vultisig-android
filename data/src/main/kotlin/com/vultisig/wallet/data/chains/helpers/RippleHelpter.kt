@@ -7,6 +7,7 @@ import com.vultisig.wallet.data.models.SignedTransactionResult
 import com.vultisig.wallet.data.models.payload.BlockChainSpecific
 import com.vultisig.wallet.data.models.payload.KeysignPayload
 import com.vultisig.wallet.data.tss.getSignature
+import com.vultisig.wallet.data.tss.getSignatureWithRecoveryID
 import com.vultisig.wallet.data.utils.Numeric
 import timber.log.Timber
 import wallet.core.jni.CoinType
@@ -25,7 +26,7 @@ object RippleHelper {
         require(keysignPayload.coin.chain == Chain.Ripple) { "Coin is not XRP" }
 
 
-        val (sequence, gas) = keysignPayload.blockChainSpecific as? BlockChainSpecific.Ripple
+        val (sequence, gas,lastLedgerSequence) = keysignPayload.blockChainSpecific as? BlockChainSpecific.Ripple
             ?: error("getPreSignedInputData: fail to get account number and sequence")
 
         val publicKey = PublicKey(
@@ -45,6 +46,7 @@ object RippleHelper {
         val input = Ripple.SigningInput.newBuilder()
             .setFee(gas.toLong())
             .setSequence(sequence.toInt())
+            .setLastLedgerSequence(lastLedgerSequence.toInt())
             .setAccount(keysignPayload.coin.address)
             .setPublicKey(
                 ByteString.copyFrom(publicKey.data())
@@ -66,7 +68,7 @@ object RippleHelper {
         val preSigningOutput =
             wallet.core.jni.proto.TransactionCompiler.PreSigningOutput.parseFrom(hashes)
                 .checkError()
-        return listOf(Numeric.toHexString(preSigningOutput.dataHash.toByteArray()))
+        return listOf(Numeric.toHexStringNoPrefix(preSigningOutput.dataHash.toByteArray()))
     }
 
     fun getSignedTransaction(
@@ -91,21 +93,21 @@ object RippleHelper {
 
         val allSignatures = DataVector()
         val publicKeys = DataVector()
-        val key = Numeric.toHexString(preSigningOutput.dataHash.toByteArray())
+        val key = Numeric.toHexStringNoPrefix(preSigningOutput.dataHash.toByteArray())
         signatures[key]
             ?.getSignature()
             ?: error("Signature not found")
 
         signatures[key]?.let {
-            if (!publicKey.verifyAsDER(
-                    it.derSignature.hexToByteArray(),
+            if (!publicKey.verify(
+                    it.getSignatureWithRecoveryID(),
                     preSigningOutput.dataHash.toByteArray()
                 )
             ) {
                 Timber.e("Invalid signature")
                 error("Invalid signature")
             }
-            allSignatures.add(it.derSignature.hexToByteArray())
+            allSignatures.add(it.getSignatureWithRecoveryID())
             publicKeys.add(publicKey.data())
         }
 

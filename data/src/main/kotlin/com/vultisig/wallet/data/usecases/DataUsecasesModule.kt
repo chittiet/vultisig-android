@@ -1,5 +1,9 @@
 package com.vultisig.wallet.data.usecases
 
+import com.vultisig.wallet.data.usecases.backup.CreateVaultBackupFileNameUseCase
+import com.vultisig.wallet.data.usecases.backup.CreateVaultBackupFileNameUseCaseImpl
+import com.vultisig.wallet.data.usecases.backup.IsVaultBackupFileExtensionValidUseCase
+import com.vultisig.wallet.data.usecases.backup.IsVaultBackupFileExtensionValidUseCaseImpl
 import com.vultisig.wallet.data.usecases.tss.DiscoverParticipantsUseCase
 import com.vultisig.wallet.data.usecases.tss.DiscoverParticipantsUseCaseImpl
 import com.vultisig.wallet.data.usecases.tss.PullTssMessagesUseCase
@@ -160,13 +164,20 @@ internal interface DataUsecasesModule {
 
     @Binds
     @Singleton
-    fun bindGetFlowTypeUseCase(
-        impl: GetFlowTypeUseCaseImpl
-    ): GetFlowTypeUseCase
-
-    @Binds
-    @Singleton
     fun bindSearchKujiraTokenUseCase(
         impl: SearchKujiraTokenUseCaseImpl
     ): SearchKujiraTokenUseCase
+
+    @Binds
+    @Singleton
+    fun bindCreateVaultBackupFileNameUseCase(
+        impl: CreateVaultBackupFileNameUseCaseImpl
+    ): CreateVaultBackupFileNameUseCase
+
+    @Binds
+    @Singleton
+    fun bindIsVaultBackupFileExtensionValidUseCase(
+        impl: IsVaultBackupFileExtensionValidUseCaseImpl
+    ): IsVaultBackupFileExtensionValidUseCase
+
 }

@@ -2,6 +2,7 @@ package com.vultisig.wallet.ui.screens.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +47,7 @@ import com.vultisig.wallet.ui.components.UiIcon
 import com.vultisig.wallet.ui.components.UiPlusButton
 import com.vultisig.wallet.ui.components.UiSpacer
 import com.vultisig.wallet.ui.components.VaultActionButton
+import com.vultisig.wallet.ui.components.banners.UpgradeBanner
 import com.vultisig.wallet.ui.components.library.UiPlaceholderLoader
 import com.vultisig.wallet.ui.models.AccountUiModel
 import com.vultisig.wallet.ui.models.VaultAccountsUiModel
@@ -60,7 +64,7 @@ internal fun VaultAccountsScreen(
     viewModel: VaultAccountsViewModel = hiltViewModel(),
     isRearrangeMode: Boolean,
 ) {
-    val state = viewModel.uiState.collectAsState().value
+    val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(vaultId) {
         viewModel.loadData(vaultId)
@@ -101,6 +105,7 @@ internal fun VaultAccountsScreen(
         },
         onToggleBalanceVisibility = viewModel::toggleBalanceVisibility,
         onBackupWarningClick = viewModel::backupVault,
+        onMigrateClick = viewModel::migrate,
     )
 }
 
@@ -118,6 +123,7 @@ private fun VaultAccountsScreen(
     onChooseChains: () -> Unit = {},
     onToggleBalanceVisibility: () -> Unit = {},
     onBackupWarningClick: () -> Unit = {},
+    onMigrateClick: () -> Unit = {},
 ) {
     val snackBarHostState = remember {
         SnackbarHostState()
@@ -147,12 +153,18 @@ private fun VaultAccountsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
-                                start = 22.dp,
-                                end = 22.dp,
-                                top = 0.dp,
                                 bottom = 16.dp
                             )
                     ) {
+                        if (state.showMigration) {
+                            UpgradeBanner(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onMigrateClick)
+                                    .testTag(VaultAccountsScreenTags.MIGRATE)
+                            )
+                        }
+
                         AnimatedContent(
                             targetState = state.totalFiatValue,
                             label = "ChainAccount FiatAmount",
@@ -228,6 +240,8 @@ private fun VaultAccountsScreen(
                     UiPlusButton(
                         title = stringResource(R.string.vault_choose_chains),
                         onClick = onChooseChains,
+                        modifier = Modifier
+                            .testTag("VaultAccountsScreen.chooseChains")
                     )
                     UiSpacer(
                         size = 64.dp,
@@ -297,4 +311,8 @@ private fun VaultAccountsScreenPreview() {
             ),
         ),
     )
+}
+
+internal object VaultAccountsScreenTags {
+    const val MIGRATE = "VaultAccountsScreen.migrate"
 }

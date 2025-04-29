@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vultisig.wallet.data.models.Address
 import com.vultisig.wallet.data.models.IsSwapSupported
+import com.vultisig.wallet.data.models.SigningLibType
 import com.vultisig.wallet.data.models.VaultId
 import com.vultisig.wallet.data.models.calculateAccountsTotalFiatValue
 import com.vultisig.wallet.data.models.calculateAddressesTotalFiatValue
@@ -24,7 +25,6 @@ import com.vultisig.wallet.ui.navigation.Navigator
 import com.vultisig.wallet.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -39,6 +39,7 @@ internal data class VaultAccountsUiModel(
     val vaultName: String = "",
     val showBackupWarning: Boolean = false,
     val showMonthlyBackupReminder: Boolean = false,
+    val showMigration: Boolean = false,
     val isRefreshing: Boolean = false,
     val totalFiatValue: String? = null,
     val isBalanceValueVisible: Boolean = true,
@@ -124,7 +125,7 @@ internal class VaultAccountsViewModel @Inject constructor(
     fun swap() {
         val vaultId = vaultId ?: return
         viewModelScope.launch {
-            navigator.navigate(Destination.Swap(vaultId = vaultId))
+            navigator.route(Route.Swap(vaultId = vaultId))
         }
     }
 
@@ -154,6 +155,8 @@ internal class VaultAccountsViewModel @Inject constructor(
             uiState.update { it.copy(vaultName = vault.name) }
             val isVaultBackedUp = vaultDataStoreRepository.readBackupStatus(vaultId).first()
             uiState.update { it.copy(showBackupWarning = !isVaultBackedUp) }
+            val showMigration = vault.libType == SigningLibType.GG20
+            uiState.update { it.copy(showMigration = showMigration) }
         }
     }
 
@@ -166,22 +169,19 @@ internal class VaultAccountsViewModel @Inject constructor(
         loadAccountsJob = viewModelScope.launch {
             accountsRepository
                 .loadAddresses(vaultId, isRefresh)
-                .updateUiStateFromFlow()
+                .map { it ->
+                    it.sortByAccountsTotalFiatValue()
+                }
+                .catch {
+                    updateRefreshing(false)
+
+                    // TODO handle error
+                    Timber.e(it)
+                }.collect { accounts ->
+                    accounts.updateUiStateFromList()
+                }
         }
     }
-
-    private suspend fun Flow<List<Address>>.updateUiStateFromFlow() =
-        this.map { it ->
-            it.sortByAccountsTotalFiatValue()
-        }
-            .catch {
-                updateRefreshing(false)
-
-                // TODO handle error
-                Timber.e(it)
-            }.collect { accounts ->
-                accounts.updateUiStateFromList()
-            }
 
     private fun List<Address>.sortByAccountsTotalFiatValue() =
         sortedWith(compareBy({
@@ -222,7 +222,14 @@ internal class VaultAccountsViewModel @Inject constructor(
     fun backupVault() {
         viewModelScope.launch {
             dismissBackupReminder()
-            navigator.route(Route.BackupPassword(vaultId!!))
+            navigator.route(Route.BackupPasswordRequest(vaultId!!))
+        }
+    }
+
+    fun migrate() {
+        val vaultId = vaultId ?: return
+        viewModelScope.launch {
+            navigator.route(Route.MigrationOnboarding(vaultId))
         }
     }
 

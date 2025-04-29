@@ -22,9 +22,10 @@ internal class BackupVaultViewModel @Inject constructor(
     fun backup() {
         viewModelScope.launch {
             navigator.route(
-                Route.BackupPassword(
+                Route.BackupPasswordRequest(
                     vaultId = args.vaultId,
                     vaultType = args.vaultType,
+                    action = args.action,
                 )
             )
         }

@@ -82,6 +82,8 @@ internal class PayloadToProtoMapperImpl @Inject constructor() : PayloadToProtoMa
                     accountNumber = specific.accountNumber.toString().toULong(),
                     sequence = specific.sequence.toString().toULong(),
                     gas = specific.gas.toString().toULong(),
+                    transactionType = specific.transactionType,
+                    ibcDenomTraces = specific.ibcDenomTraces,
                 )
             } else null,
             solanaSpecific = if (specific is BlockChainSpecific.Solana) {
@@ -112,6 +114,7 @@ internal class PayloadToProtoMapperImpl @Inject constructor() : PayloadToProtoMa
             rippleSpecific = if (specific is BlockChainSpecific.Ripple) {
                 RippleSpecific(
                     sequence = specific.sequence,
+                    lastLedgerSequence = specific.lastLedgerSequence,
                     gas = specific.gas,
                 )
             } else null,

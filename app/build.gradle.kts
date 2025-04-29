@@ -17,10 +17,11 @@ android {
         applicationId = "com.vultisig.wallet"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = 35
-        versionCode = 47
-        versionName = "1.0.47"
+        versionCode = 51
+        versionName = "1.0.51"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.vultisig.wallet.util.HiltTestRunner"
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -92,6 +93,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    androidTestImplementation(libs.androidx.test.core.ktx)
 
     // room
     implementation(libs.androidx.room.runtime)
@@ -108,6 +110,8 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     kapt(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.work)
+    androidTestImplementation(libs.hilt.android.testing)
+    kaptAndroidTest(libs.hilt.android.compiler)
 
     // ktor
     implementation(libs.ktor.client.core)
@@ -139,6 +143,7 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.espresso.intents)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.junit.jupiter)

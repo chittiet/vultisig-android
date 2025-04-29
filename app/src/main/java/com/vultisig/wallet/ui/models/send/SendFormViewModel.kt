@@ -45,6 +45,7 @@ import com.vultisig.wallet.data.repositories.TransactionRepository
 import com.vultisig.wallet.data.repositories.VaultRepository
 import com.vultisig.wallet.data.usecases.GasFeeToEstimatedFeeUseCase
 import com.vultisig.wallet.data.usecases.GetAvailableTokenBalanceUseCase
+import com.vultisig.wallet.data.usecases.RequestQrScanUseCase
 import com.vultisig.wallet.data.utils.TextFieldUtils
 import com.vultisig.wallet.ui.models.mappers.AccountToTokenBalanceUiModelMapper
 import com.vultisig.wallet.ui.models.mappers.TokenValueToStringWithUnitMapper
@@ -52,6 +53,7 @@ import com.vultisig.wallet.ui.navigation.Destination
 import com.vultisig.wallet.ui.navigation.Navigator
 import com.vultisig.wallet.ui.navigation.SendDst
 import com.vultisig.wallet.ui.utils.UiText
+import com.vultisig.wallet.ui.utils.asUiText
 import com.vultisig.wallet.ui.utils.textAsFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -137,6 +139,7 @@ internal class SendFormViewModel @Inject constructor(
     private val sendNavigator: Navigator<SendDst>,
     private val accountToTokenBalanceUiModelMapper: AccountToTokenBalanceUiModelMapper,
     private val mapTokenValueToString: TokenValueToStringWithUnitMapper,
+    private val requestQrScan: RequestQrScanUseCase,
     private val accountsRepository: AccountsRepository,
     appCurrencyRepository: AppCurrencyRepository,
     private val chainAccountAddressRepository: ChainAccountAddressRepository,
@@ -301,7 +304,10 @@ internal class SendFormViewModel @Inject constructor(
 
     fun scanAddress() {
         viewModelScope.launch {
-            navigator.navigate(Destination.ScanQr)
+            val qr = requestQrScan.invoke()
+            if (qr != null) {
+                setAddressFromQrCode(qr)
+            }
         }
     }
 
@@ -597,6 +603,8 @@ internal class SendFormViewModel @Inject constructor(
                 )
             } catch (e: InvalidTransactionDataException) {
                 showError(e.text)
+            } catch (e: Exception) {
+                showError(e.message?.asUiText() ?: UiText.Empty)
             } finally {
                 hideLoading()
             }
@@ -845,7 +853,7 @@ internal class SendFormViewModel @Inject constructor(
                     )
                     planFee.value = plan.fee
                 } catch (e: Exception) {
-                     Timber.e(e)
+                    Timber.e(e)
                 }
             }.collect()
         }
@@ -969,10 +977,11 @@ internal class SendFormViewModel @Inject constructor(
                 accounts,
             ) { token, accounts ->
                 val address = token.address
-                val hasMemo = token.isNativeToken
+                val hasMemo = token.isNativeToken || token.chain.standard == TokenStandard.COSMOS
 
-                val uiModel = accountToTokenBalanceUiModelMapper.map(SendSrc(
-                    Address(
+                val uiModel = accountToTokenBalanceUiModelMapper.map(
+                    SendSrc(
+                        Address(
                         chain = token.chain,
                         address = address,
                         accounts = accounts,
@@ -990,7 +999,8 @@ internal class SendFormViewModel @Inject constructor(
                         from = address,
                         selectedCoin = uiModel,
                         hasMemo = hasMemo,
-                    )
+
+                        )
                 }
             }.collect()
         }

@@ -25,6 +25,7 @@ import com.vultisig.wallet.ui.components.buttons.VsButton
 import com.vultisig.wallet.ui.components.inputs.VsTextInputField
 import com.vultisig.wallet.ui.components.inputs.VsTextInputFieldInnerState
 import com.vultisig.wallet.ui.components.inputs.VsTextInputFieldType
+import com.vultisig.wallet.ui.components.topbar.VsTopAppBar
 import com.vultisig.wallet.ui.models.keysign.KeysignPasswordUiModel
 import com.vultisig.wallet.ui.models.keysign.KeysignPasswordViewModel
 import com.vultisig.wallet.ui.theme.Theme
@@ -42,6 +43,7 @@ internal fun KeysignPasswordScreen(
         passwordFieldState = model.passwordFieldState,
         onPasswordVisibilityToggle = model::togglePasswordVisibility,
         onContinueClick = model::proceed,
+        onBackClick = model::back,
     )
 }
 
@@ -51,15 +53,15 @@ private fun KeysignPasswordScreen(
     passwordFieldState: TextFieldState,
     onPasswordVisibilityToggle: () -> Unit,
     onContinueClick: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
     Scaffold(
         containerColor = Theme.colors.backgrounds.primary,
+        topBar = {
+            VsTopAppBar(
+                onBackClick = onBackClick,
+            )
+        },
         content = { contentPadding ->
             Column(
                 modifier = Modifier
@@ -82,6 +84,12 @@ private fun KeysignPasswordScreen(
                     modifier = Modifier
                         .weight(1f),
                 ) {
+                    val focusRequester = remember { FocusRequester() }
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
+
                     VsTextInputField(
                         textFieldState = passwordFieldState,
                         hint = stringResource(R.string.backup_password_screen_enter_password),
@@ -135,5 +143,6 @@ private fun KeysignPasswordScreenPreview() {
         passwordFieldState = TextFieldState(),
         onPasswordVisibilityToggle = {},
         onContinueClick = {},
+        onBackClick = {},
     )
 }

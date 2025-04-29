@@ -215,6 +215,7 @@
     <string name="custom_token_token_not_found">Token not found</string>
     <string name="custom_token_add_token">Add %1$s Token</string>
     <string name="deposit_form_amount_title">Amount (Balance: %1$s)</string>
+    <string name="deposit_form_amount_title_without_balance" translatable="false">Amount</string>
     <string name="share_vault_qr_title">Share Vault QR</string>
     <string name="share_vault_qr_save">Save</string>
     <string name="vault_settings_enable_biometrics_save">Save</string>
@@ -431,6 +432,9 @@
     <string name="onboarding_fast_backup_desc_page_3_part_1" translatable="false">It is sent to you for complete self-custody!</string>
     <string name="onboarding_fast_backup_desc_page_3_part_2" translatable="false">Check your e-mail to verify</string>
 
+    <string name="onboarding_fast_backup_migration_desc_page_1_part_1" translatable="false">We’ve sent you your new server share!</string>
+    <string name="onboarding_fast_backup_migration_desc_page_1_part_2" translatable="false">Check your e-mail to verify</string>
+
 
     <string name="select_vault_type_secure_title" translatable="false">Ultimate security</string>
     <string name="select_vault_type_secure_desc_1" translatable="false">Maximum security with multiple devices</string>
@@ -487,7 +491,7 @@
     <string name="fast_vault_name_screen_desc" translatable="false">You can always rename your vault later in settings</string>
     <string name="enter_email_screen_title" translatable="false">Enter your e-mail</string>
     <string name="enter_email_screen_desc" translatable="false">This email is only used to send the server backup</string>
-    <string name="fast_vault_password_screen_title" translatable="false">Password</string>
+    <string name="fast_vault_password_screen_title" translatable="false">Vultiserver Password</string>
     <string name="fast_vault_password_screen_hint" translatable="false">This occurs because the password is used to locally encrypt the backup file, similar to how a hard drive is encrypted. In the following step, you have the option to add a hint.</string>
     <string name="fast_vault_password_screen_hint_title" translatable="false">More Info</string>
     <string name="fast_vault_password_screen_warning" translatable="false">Password cannot be reset or recovered</string>
@@ -529,6 +533,24 @@
     <string name="select_network_network_title" translatable="false">Network</string>
     <string name="select_network_title" translatable="false">Select network</string>
     <string name="verify_swap_youre_swapping_title" translatable="false">You\'re swapping</string>
-    <string name="keysign_make_sure_devices_are_on_the_same_network" translatable="false">Make sure devices are on the same network</string>
     <string name="keysign_app_version_text" translatable="false">Version %1$s (%2$s)</string>
+    <string name="backup_password_request_title" translatable="false">Do you want to add a password to your device vault shares?</string>
+    <string name="backup_password_request_description" translatable="false">We recommend that you do not set a backup password for device vault shares-your data is safe if the backups are properly stored in different locations, which is already a significant protection. Remember, backup passwords can\'t be recovered if you forget them. Your choice!</string>
+    <string name="backup_password_request_no_password_action" translatable="false">Backup without password</string>
+    <string name="backup_password_request_with_password_action" translatable="false">Use password</string>
+    <string name="backup_password_topbar_title" translatable="false">Password</string>
+    <string name="function_transfer_ibc_dst_address_input_title" translatable="false">Destination Address</string>
+    <string name="function_switch_thorchain_address" translatable="false">THORChain Address</string>
+    <string name="migration_onboarding_step_1_text_start" translatable="false">Upgrade this vault to the</string>
+    <string name="migration_onboarding_step_1_text_emphasized" translatable="false">world’s fastest MPC protocol</string>
+    <string name="migration_onboarding_step_1_text_end" translatable="false">and sign faster than ever before</string>
+    <string name="migration_onboarding_step_2_text_start" translatable="false">You’ll create new Vault Share backups,</string>
+    <string name="migration_onboarding_step_2_text_end" translatable="false">store them as you did before</string>
+    <string name="migration_onboarding_step_3_text_start" translatable="false">Make sure that</string>
+    <string name="migration_onboarding_step_3_text_emphasize" translatable="false">all initial devices are present</string>
+    <string name="migration_onboarding_step_3_text_end" translatable="false">when upgrading</string>
+    <string name="migration_onboarding_upgrade_your_vault" translatable="false">Upgrade your vault</string>
+    <string name="migration_onboarding_upgrade_now" translatable="false">Upgrade now</string>
+    <string name="upgrade_banner_title" translatable="false">Upgrade your vault now</string>
+    <string name="deposit_form_custom_memo_optional_title" translatable="false">Custom Memo (optional)</string>
 </resources>

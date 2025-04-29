@@ -2,6 +2,7 @@ package com.vultisig.wallet.data.models.payload
 
 import vultisig.keysign.v1.CosmosIbcDenomTrace
 import vultisig.keysign.v1.SuiCoin
+import vultisig.keysign.v1.TransactionType
 import java.math.BigInteger
 
 sealed class BlockChainSpecific {
@@ -35,6 +36,7 @@ sealed class BlockChainSpecific {
         val sequence: BigInteger,
         val gas: BigInteger,
         val ibcDenomTraces: CosmosIbcDenomTrace?,
+        val transactionType: TransactionType,
     ) : BlockChainSpecific()
 
     data class Solana(
@@ -68,7 +70,8 @@ sealed class BlockChainSpecific {
 
     data class Ripple(
         val sequence: ULong,
-        val gas: ULong
+        val gas: ULong,
+        val lastLedgerSequence: ULong,
     ) : BlockChainSpecific()
 
     data class Tron(

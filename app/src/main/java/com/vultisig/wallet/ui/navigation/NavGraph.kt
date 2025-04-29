@@ -8,29 +8,33 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_ADDRESS
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_CHAIN_ID
-import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_DST_TOKEN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_QR
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_REQUEST_ID
-import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_SRC_TOKEN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_TOKEN_ID
 import com.vultisig.wallet.ui.navigation.Destination.Companion.ARG_VAULT_ID
 import com.vultisig.wallet.ui.navigation.Destination.Home.Companion.ARG_SHOW_VAULT_LIST
 import com.vultisig.wallet.ui.navigation.Destination.SelectToken.Companion.ARG_SWAP_SELECT
 import com.vultisig.wallet.ui.navigation.Destination.SelectToken.Companion.ARG_TARGET_ARG
 import com.vultisig.wallet.ui.navigation.Route.BackupPassword
+import com.vultisig.wallet.ui.navigation.Route.BackupPasswordRequest
 import com.vultisig.wallet.ui.navigation.Route.BackupVault
 import com.vultisig.wallet.ui.navigation.Route.ChooseVaultType
 import com.vultisig.wallet.ui.navigation.Route.FastVaultVerification
+import com.vultisig.wallet.ui.navigation.Route.ImportVault
 import com.vultisig.wallet.ui.navigation.Route.Keygen
+import com.vultisig.wallet.ui.navigation.Route.Keysign
 import com.vultisig.wallet.ui.navigation.Route.Onboarding
 import com.vultisig.wallet.ui.navigation.Route.Secret
 import com.vultisig.wallet.ui.navigation.Route.SelectAsset
 import com.vultisig.wallet.ui.navigation.Route.SelectNetwork
+import com.vultisig.wallet.ui.navigation.Route.Swap
 import com.vultisig.wallet.ui.navigation.Route.VaultBackupSummary
 import com.vultisig.wallet.ui.navigation.Route.VaultConfirmation
 import com.vultisig.wallet.ui.navigation.Route.VaultInfo
+import com.vultisig.wallet.ui.navigation.Route.VerifySwap
 import com.vultisig.wallet.ui.navigation.Screen.AddChainAccount
 import com.vultisig.wallet.ui.screens.BackupPasswordScreen
 import com.vultisig.wallet.ui.screens.ChainSelectionScreen
@@ -45,6 +49,7 @@ import com.vultisig.wallet.ui.screens.TokenDetailScreen
 import com.vultisig.wallet.ui.screens.TokenSelectionScreen
 import com.vultisig.wallet.ui.screens.VaultDetailScreen
 import com.vultisig.wallet.ui.screens.VaultRenameScreen
+import com.vultisig.wallet.ui.screens.backup.BackupPasswordRequestScreen
 import com.vultisig.wallet.ui.screens.deposit.DepositScreen
 import com.vultisig.wallet.ui.screens.folder.CreateFolderScreen
 import com.vultisig.wallet.ui.screens.folder.FolderScreen
@@ -61,14 +66,15 @@ import com.vultisig.wallet.ui.screens.keygen.NameVaultScreen
 import com.vultisig.wallet.ui.screens.keygen.StartScreen
 import com.vultisig.wallet.ui.screens.keygen.VaultConfirmationScreen
 import com.vultisig.wallet.ui.screens.keysign.JoinKeysignView
+import com.vultisig.wallet.ui.screens.keysign.KeysignPasswordScreen
+import com.vultisig.wallet.ui.screens.keysign.KeysignScreen
+import com.vultisig.wallet.ui.screens.migration.MigrationOnboardingScreen
 import com.vultisig.wallet.ui.screens.onboarding.OnboardingScreen
 import com.vultisig.wallet.ui.screens.onboarding.OnboardingSummaryScreen
 import com.vultisig.wallet.ui.screens.onboarding.VaultBackupOnboardingScreen
 import com.vultisig.wallet.ui.screens.onboarding.VaultBackupSummaryScreen
-import com.vultisig.wallet.ui.screens.peer.PeerDiscoveryScreen
+import com.vultisig.wallet.ui.screens.peer.KeygenPeerDiscoveryScreen
 import com.vultisig.wallet.ui.screens.reshare.ReshareStartScreen
-import com.vultisig.wallet.ui.screens.scan.ARG_QR_CODE
-import com.vultisig.wallet.ui.screens.scan.ScanQrAndJoin
 import com.vultisig.wallet.ui.screens.scan.ScanQrErrorScreen
 import com.vultisig.wallet.ui.screens.scan.ScanQrScreen
 import com.vultisig.wallet.ui.screens.select.SelectAssetScreen
@@ -83,6 +89,7 @@ import com.vultisig.wallet.ui.screens.settings.SettingsScreen
 import com.vultisig.wallet.ui.screens.settings.VultisigTokenScreen
 import com.vultisig.wallet.ui.screens.sign.SignMessageScreen
 import com.vultisig.wallet.ui.screens.swap.SwapScreen
+import com.vultisig.wallet.ui.screens.swap.VerifySwapScreen
 import com.vultisig.wallet.ui.screens.transaction.AddAddressEntryScreen
 import com.vultisig.wallet.ui.screens.transaction.AddressBookScreen
 import com.vultisig.wallet.ui.screens.vault_settings.VaultSettingsScreen
@@ -125,7 +132,7 @@ internal fun SetupNavGraph(
             HomeScreen(navController)
         }
 
-        composable<Route.ImportVault> {
+        composable<ImportVault> {
             ImportFileScreen(navController)
         }
         composable(route = Destination.CreateFolder.route) {
@@ -258,21 +265,15 @@ internal fun SetupNavGraph(
                 }
             )
         ) { entry ->
-            val savedStateHandle = entry.savedStateHandle
             val args = requireNotNull(entry.arguments)
 
             SendScreen(
                 navController = navController,
-                qrCodeResult = savedStateHandle.remove(ARG_QR_CODE) ?: args.getString(ARG_QR),
+                qrCodeResult = args.getString(ARG_QR),
                 vaultId = requireNotNull(args.getString(ARG_VAULT_ID)),
                 chainId = args.getString(ARG_CHAIN_ID),
                 startWithTokenId = args.getString(ARG_TOKEN_ID),
             )
-        }
-        composable(
-            route = Destination.ScanQr.route,
-        ) {
-            ScanQrScreen(navController = navController)
         }
 
         composable(
@@ -287,18 +288,6 @@ internal fun SetupNavGraph(
                 navController = navController,
                 vaultId = requireNotNull(args.getString(ARG_VAULT_ID)),
             )
-        }
-
-        composable(
-            route = Destination.JoinThroughQr.STATIC_ROUTE,
-            arguments = listOf(
-                navArgument(ARG_VAULT_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) {
-            ScanQrAndJoin(navController = navController)
         }
 
         composable(
@@ -335,43 +324,9 @@ internal fun SetupNavGraph(
                     nullable = true
                 }
             )
-        ) { entry ->
-            val savedStateHandle = entry.savedStateHandle
-            val args = requireNotNull(entry.arguments)
-
+        ) {
             AddAddressEntryScreen(
                 navController = navController,
-                qrCodeResult = savedStateHandle.remove(ARG_QR_CODE) ?: args.getString(ARG_QR),
-            )
-        }
-
-        composable(
-            route = Destination.Swap.staticRoute,
-            arguments = listOf(
-                navArgument(ARG_VAULT_ID) { type = NavType.StringType },
-                navArgument(ARG_CHAIN_ID) {
-                    type = NavType.StringType
-                    // if chainId = null show all tokens
-                    // else only tokens from chain
-                    nullable = true
-                },
-                navArgument(ARG_DST_TOKEN_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                },
-                navArgument(ARG_SRC_TOKEN_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) { entry ->
-            val args = requireNotNull(entry.arguments)
-            SwapScreen(
-                navController = navController,
-                vaultId = requireNotNull(args.getString(ARG_VAULT_ID)),
-                chainId = args.getString(ARG_CHAIN_ID),
-                srcTokenId = args.getString(ARG_SRC_TOKEN_ID),
-                dstTokenId = args.getString(ARG_DST_TOKEN_ID),
             )
         }
 
@@ -510,6 +465,12 @@ internal fun SetupNavGraph(
             OnboardingSummaryScreen()
         }
 
+        // scan
+
+        composable<Route.ScanQr> {
+            ScanQrScreen()
+        }
+
         // keygen vault info
         composable<ChooseVaultType> {
             ChooseVaultScreen()
@@ -537,7 +498,7 @@ internal fun SetupNavGraph(
         }
 
         composable<Keygen.PeerDiscovery> {
-            PeerDiscoveryScreen()
+            KeygenPeerDiscoveryScreen()
         }
 
         composable<Keygen.Generating> {
@@ -545,7 +506,7 @@ internal fun SetupNavGraph(
         }
 
         // vault backup
-        composable<Onboarding.VaultBackup> (
+        composable<Onboarding.VaultBackup>(
             enterTransition = slideInFromBottomEnterTransition(),
         ) {
             VaultBackupOnboardingScreen()
@@ -559,8 +520,12 @@ internal fun SetupNavGraph(
             BackupVaultScreen()
         }
 
+        composable<BackupPasswordRequest> {
+            BackupPasswordRequestScreen()
+        }
+
         composable<BackupPassword> {
-            BackupPasswordScreen(navController)
+            BackupPasswordScreen()
         }
 
         composable<VaultBackupSummary> {
@@ -580,6 +545,33 @@ internal fun SetupNavGraph(
 
         dialog<SelectNetwork> {
             SelectNetworkScreen()
+        }
+
+        // swap
+        composable<Swap> {
+            SwapScreen()
+        }
+
+        composable<VerifySwap> {
+            VerifySwapScreen()
+        }
+
+        // keysign
+        composable<Keysign.Password> {
+            KeysignPasswordScreen()
+        }
+
+        composable<Keysign.Keysign> { entry ->
+            val args = entry.toRoute<Keysign.Keysign>()
+            KeysignScreen(
+                txType = args.txType,
+                transactionId = args.transactionId,
+            )
+        }
+
+        // migration
+        composable<Route.MigrationOnboarding> {
+            MigrationOnboardingScreen()
         }
     }
 }
