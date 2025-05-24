@@ -37,6 +37,7 @@ internal open class VaultSettingsViewModel @Inject constructor(
             val hasFastSign = isVaultHasFastSignById(vaultId)
             uiModel.update {
                 it.copy(
+                    hasReshare = !hasFastSign,
                     hasMigration = hasMigration,
                     hasFastSign = hasFastSign
                 )
@@ -88,7 +89,7 @@ internal open class VaultSettingsViewModel @Inject constructor(
 
     fun migrate() {
         viewModelScope.launch {
-            navigator.route(Route.MigrationOnboarding(vaultId = vaultId))
+            navigator.route(Route.Migration.Onboarding(vaultId = vaultId))
         }
     }
 

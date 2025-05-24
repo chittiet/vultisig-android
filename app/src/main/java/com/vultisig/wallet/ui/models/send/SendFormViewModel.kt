@@ -17,13 +17,13 @@ import com.vultisig.wallet.data.models.AddressBookEntry
 import com.vultisig.wallet.data.models.Chain
 import com.vultisig.wallet.data.models.ChainId
 import com.vultisig.wallet.data.models.Coin
-import com.vultisig.wallet.data.models.Coins
 import com.vultisig.wallet.data.models.FiatValue
 import com.vultisig.wallet.data.models.GasFeeParams
 import com.vultisig.wallet.data.models.ImageModel
 import com.vultisig.wallet.data.models.TokenId
 import com.vultisig.wallet.data.models.TokenStandard
 import com.vultisig.wallet.data.models.TokenValue
+import com.vultisig.wallet.data.models.Tokens
 import com.vultisig.wallet.data.models.Transaction
 import com.vultisig.wallet.data.models.VaultId
 import com.vultisig.wallet.data.models.allowZeroGas
@@ -630,6 +630,7 @@ internal class SendFormViewModel @Inject constructor(
             vaultPublicKeyECDSA = vault.pubKeyECDSA,
             vaultLocalPartyID = vault.localPartyID,
             utxos = specific.utxos,
+            libType = vault.libType,
         )
 
         val utxo = UtxoHelper.getHelper(vault, keysignPayload.coin.coinType)
@@ -685,11 +686,8 @@ internal class SendFormViewModel @Inject constructor(
     private fun calculateGasLimit(
         chain: Chain,
         specific: BlockChainSpecific?,
-    ): BigInteger = if (chain.standard == TokenStandard.EVM && specific != null) {
-        (specific as BlockChainSpecific.Ethereum).gasLimit
-    } else {
-        BigInteger.valueOf(1)
-    }
+    ): BigInteger =
+        (specific as? BlockChainSpecific.Ethereum)?.gasLimit ?: BigInteger.valueOf(1)
 
     private fun showError(text: UiText) {
         uiState.update { it.copy(errorText = text) }
@@ -1069,12 +1067,12 @@ internal class SendFormViewModel @Inject constructor(
 
                 val existentialDeposit = when {
                     selectedChain == Chain.Polkadot &&
-                            selectedToken.ticker == Coins.polkadot.ticker -> {
+                            selectedToken.ticker == Tokens.polkadot.ticker -> {
                         PolkadotHelper.DEFAULT_EXISTENTIAL_DEPOSIT.toBigInteger()
                     }
 
                     selectedChain == Chain.Ripple &&
-                            selectedToken.ticker == Coins.xrp.ticker -> {
+                            selectedToken.ticker == Tokens.xrp.ticker -> {
                         RippleHelper.DEFAULT_EXISTENTIAL_DEPOSIT.toBigInteger()
                     }
 
@@ -1167,10 +1165,19 @@ internal class SendFormViewModel @Inject constructor(
                     isRefreshing = true
                 )
             }
-            val gasFee = gasFeeRepository.getGasFee(
-                srcAddress.chain,
-                srcAddress.address
-            )
+            val gasFee = try {
+                gasFeeRepository.getGasFee(
+                    srcAddress.chain,
+                    srcAddress.address
+                )
+            } catch (e: Exception) {
+                uiState.update {
+                    it.copy(
+                        isRefreshing = false
+                    )
+                }
+                return@launch
+            }
 
             this@SendFormViewModel.gasFee.value =
                 adjustGasFee(gasFee, gasSettings.value, specific.value)

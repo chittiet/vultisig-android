@@ -42,6 +42,7 @@ import com.vultisig.wallet.data.models.Chain.Terra
 import com.vultisig.wallet.data.models.Chain.TerraClassic
 import com.vultisig.wallet.data.models.Chain.ThorChain
 import com.vultisig.wallet.data.models.Chain.Ton
+import com.vultisig.wallet.data.models.Chain.Zcash
 import com.vultisig.wallet.data.models.Chain.ZkSync
 import com.vultisig.wallet.data.models.Coin
 import com.vultisig.wallet.data.models.FiatValue
@@ -59,8 +60,12 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import javax.inject.Inject
 
-
+/**
+ * Interface for the BalanceRepository.
+ */
 interface BalanceRepository {
+
+    suspend fun getUnstakableTcyAmount(address: String): String?
 
     suspend fun getCachedTokenBalance(
         address: String,
@@ -101,6 +106,11 @@ internal class BalanceRepositoryImpl @Inject constructor(
     private val tronApi: TronApi,
     private val tokenValueDao: TokenValueDao,
 ) : BalanceRepository {
+
+    override suspend fun getUnstakableTcyAmount(address: String): String? {
+        return thorChainApi.getUnstakableTcyAmount(address)
+    }
+
 
     override suspend fun getCachedTokenBalance(
         address: String,
@@ -232,7 +242,7 @@ internal class BalanceRepositoryImpl @Inject constructor(
                 balance?.amount?.toBigInteger() ?: 0.toBigInteger()
             }
 
-            Bitcoin, BitcoinCash, Litecoin, Dogecoin, Dash -> {
+            Bitcoin, BitcoinCash, Litecoin, Dogecoin, Dash, Zcash -> {
                 val balance = blockchairApi.getAddressInfo(coin.chain, address)?.address?.balance
                 balance?.toBigInteger() ?: 0.toBigInteger()
             }

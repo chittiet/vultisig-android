@@ -9,8 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.vultisig.wallet.data.models.Chain
 import com.vultisig.wallet.data.models.Coin
-import com.vultisig.wallet.data.models.Coins
 import com.vultisig.wallet.data.models.ImageModel
+import com.vultisig.wallet.data.models.Tokens
 import com.vultisig.wallet.data.models.getCoinLogo
 import com.vultisig.wallet.data.repositories.AccountsRepository
 import com.vultisig.wallet.data.repositories.RequestResultRepository
@@ -23,6 +23,7 @@ import com.vultisig.wallet.ui.utils.textAsFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapConcat
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -120,6 +122,9 @@ internal class SelectAssetViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .flatMapConcat { selectedChain ->
                     accountRepository.loadAddress(vaultId, selectedChain)
+                }
+                .catch {
+                    Timber.e(it)
                 },
             searchFieldState.textAsFlow()
                 .map { it.toString() },
@@ -132,7 +137,7 @@ internal class SelectAssetViewModel @Inject constructor(
                 .map {
                     AssetUiModel(
                         token = it.token,
-                        logo = Coins.getCoinLogo(it.token.logo),
+                        logo = Tokens.getCoinLogo(it.token.logo),
                         title = it.token.ticker,
                         subtitle = it.token.chain.raw,
                         amount = it.tokenValue?.let(mapTokenValueToDecimalUiString) ?: "0",

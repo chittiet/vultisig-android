@@ -2,12 +2,14 @@ package com.vultisig.wallet.data.api
 
 import com.vultisig.wallet.data.api.models.THORChainSwapQuoteDeserialized
 import com.vultisig.wallet.data.api.models.THORChainSwapQuoteError
+import com.vultisig.wallet.data.api.models.TcyStakerResponse
 import com.vultisig.wallet.data.api.models.cosmos.CosmosBalance
 import com.vultisig.wallet.data.api.models.cosmos.CosmosBalanceResponse
 import com.vultisig.wallet.data.api.models.cosmos.CosmosTransactionBroadcastResponse
 import com.vultisig.wallet.data.api.models.cosmos.NativeTxFeeRune
 import com.vultisig.wallet.data.api.models.cosmos.THORChainAccountResultJson
 import com.vultisig.wallet.data.api.models.cosmos.THORChainAccountValue
+import com.vultisig.wallet.data.api.utils.throwIfUnsuccessful
 import com.vultisig.wallet.data.chains.helpers.THORChainSwaps
 import com.vultisig.wallet.data.common.Endpoints
 import com.vultisig.wallet.data.utils.ThorChainSwapQuoteResponseJsonSerializer
@@ -22,9 +24,10 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -64,6 +67,10 @@ interface ThorChainApi {
 
     suspend fun getTransactionDetail(tx: String): ThorChainTransactionJson
     suspend fun getTHORChainInboundAddresses(): List<THORChainInboundAddress>
+
+    suspend fun getUnstakableTcyAmount(address: String): String?
+
+    suspend fun getPools(): List<ThorChainPoolJson>
 }
 
 internal class ThorChainApiImpl @Inject constructor(
@@ -71,6 +78,22 @@ internal class ThorChainApiImpl @Inject constructor(
     private val thorChainSwapQuoteResponseJsonSerializer: ThorChainSwapQuoteResponseJsonSerializer,
     private val json: Json,
 ) : ThorChainApi {
+
+    override suspend fun getUnstakableTcyAmount(address: String): String? {
+        return try {
+            val response = httpClient.get("https://thornode.ninerealms.com/thorchain/tcy_staker/$address") {
+                header(xClientID, xClientIDValue)
+            }
+            if (!response.status.isSuccess()) {
+                null
+            } else {
+                response.body<TcyStakerResponse>().unstakable
+            }
+        } catch (e: Exception) {
+            // Exception occurred while fetching or parsing TCY staker data
+            null
+        }
+    }
 
     private val xClientID = "X-Client-ID"
     private val xClientIDValue = "vultisig"
@@ -130,17 +153,11 @@ internal class ThorChainApiImpl @Inject constructor(
     }
 
     override suspend fun getTHORChainNativeTransactionFee(): BigInteger {
-        try {
-            val response = httpClient.get("https://thornode.ninerealms.com/thorchain/network") {
-                header(xClientID, xClientIDValue)
-            }
-            val content = response.body<NativeTxFeeRune>()
-            return content.value?.let { BigInteger(it) } ?: 0.toBigInteger()
-        } catch (e: Exception) {
-            Timber.tag("THORChainService")
-                .e("Error getting THORChain native transaction fee: ${e.message}")
-            throw e
+        val response = httpClient.get("https://thornode.ninerealms.com/thorchain/network") {
+            header(xClientID, xClientIDValue)
         }
+        val content = response.body<NativeTxFeeRune>()
+        return content.value?.let { BigInteger(it) } ?: 0.toBigInteger()
     }
 
     override suspend fun broadcastTransaction(tx: String): String? {
@@ -212,11 +229,22 @@ internal class ThorChainApiImpl @Inject constructor(
                 header(xClientID, xClientIDValue)
             }
         if (!response.status.isSuccess()) {
-            Timber.tag("THORChainService")
-                .e("Error getting THORChain inbound addresses: ${response.bodyAsText()}")
+            // Error getting THORChain inbound addresses
             throw Exception("Error getting THORChain inbound addresses")
         }
         return response.body()
+    }
+
+    override suspend fun getPools(): List<ThorChainPoolJson> =
+        httpClient
+            .get("$NNRLM_URL/pools") {
+                header(xClientID, xClientIDValue)
+            }.throwIfUnsuccessful()
+            .body()
+
+
+    companion object {
+        private const val NNRLM_URL = "https://thornode.ninerealms.com/thorchain"
     }
 }
 
@@ -261,4 +289,15 @@ data class THORChainInboundAddress(
     val gasRate: String,
     @SerialName("gas_rate_units")
     val gasRateUnits: String,
+)
+
+@Serializable
+data class ThorChainPoolJson(
+    // formatted as THOR.TCY
+    @SerialName("asset")
+    val asset: String,
+    // asset price in usd with 8 decimals
+    @Contextual
+    @SerialName("asset_tor_price")
+    val assetTorPrice: BigInteger,
 )

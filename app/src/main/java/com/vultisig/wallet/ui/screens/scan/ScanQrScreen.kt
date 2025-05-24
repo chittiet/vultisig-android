@@ -69,6 +69,8 @@ import com.vultisig.wallet.ui.utils.addWhiteBorder
 import com.vultisig.wallet.ui.utils.uriToBitmap
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -107,21 +109,31 @@ internal fun ScanQrScreen(
         }
     }
 
+    val executor = remember { Executors.newSingleThreadExecutor() }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            executor.shutdownNow()
+        }
+    }
 
     val pickMedia = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         coroutineScope.launch {
             if (uri != null) {
-                val result = scanImage(InputImage.fromFilePath(context, uri))
-                val barcodes = if (result.isEmpty()) {
-                    val bitmap = requireNotNull(uriToBitmap(context.contentResolver, uri))
-                        .addWhiteBorder(2F)
-                    val inputImage = InputImage.fromBitmap(bitmap, 0)
-                    val resultBarcodes = scanImage(inputImage)
-                    bitmap.recycle()
-                    resultBarcodes
-                } else result
-                onSuccess(barcodes)
+                try {
+                    val result = scanImage(InputImage.fromFilePath(context, uri))
+                    val barcodes = if (result.isEmpty()) {
+                        val bitmap = requireNotNull(uriToBitmap(context.contentResolver, uri))
+                            .addWhiteBorder(2F)
+                        val inputImage = InputImage.fromBitmap(bitmap, 0)
+                        val resultBarcodes = scanImage(inputImage)
+                        bitmap.recycle()
+                        resultBarcodes
+                    } else result
+                    onSuccess(barcodes)
+                } catch (e: Exception) {
+                    Timber.e(e)
+                }
             }
         }
     }
@@ -155,6 +167,7 @@ internal fun ScanQrScreen(
                 QrCameraScreen(
                     roundedCorners = roundedCorners,
                     onSuccess = onSuccess,
+                    executor = executor,
                 )
 
                 Image(
@@ -237,6 +250,7 @@ internal fun ScanQrScreen(
 private fun QrCameraScreen(
     roundedCorners: Boolean = false,
     onSuccess: (List<Barcode>) -> Unit,
+    executor: Executor,
 ) {
     val localContext = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -273,14 +287,14 @@ private fun QrCameraScreen(
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                 .build()
 
-            preview.setSurfaceProvider(previewView.surfaceProvider)
+            preview.surfaceProvider = previewView.surfaceProvider
 
             val imageAnalysis = ImageAnalysis.Builder()
                 .setResolutionSelector(resolutionSelector)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             imageAnalysis.setAnalyzer(
-                ContextCompat.getMainExecutor(context),
+                executor,
                 BarcodeAnalyzer {
                     unbindCameraListener(cameraProviderFuture, localContext)
                     onSuccess(it)

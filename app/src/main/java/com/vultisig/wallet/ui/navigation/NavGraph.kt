@@ -22,6 +22,7 @@ import com.vultisig.wallet.ui.navigation.Route.BackupPassword
 import com.vultisig.wallet.ui.navigation.Route.BackupPasswordRequest
 import com.vultisig.wallet.ui.navigation.Route.BackupVault
 import com.vultisig.wallet.ui.navigation.Route.ChooseVaultType
+import com.vultisig.wallet.ui.navigation.Route.FastVaultPasswordReminder
 import com.vultisig.wallet.ui.navigation.Route.FastVaultVerification
 import com.vultisig.wallet.ui.navigation.Route.ImportVault
 import com.vultisig.wallet.ui.navigation.Route.Keygen
@@ -53,6 +54,7 @@ import com.vultisig.wallet.ui.screens.backup.BackupPasswordRequestScreen
 import com.vultisig.wallet.ui.screens.deposit.DepositScreen
 import com.vultisig.wallet.ui.screens.folder.CreateFolderScreen
 import com.vultisig.wallet.ui.screens.folder.FolderScreen
+import com.vultisig.wallet.ui.screens.home.FastVaultPasswordReminderDialog
 import com.vultisig.wallet.ui.screens.home.HomeScreen
 import com.vultisig.wallet.ui.screens.keygen.BackupVaultScreen
 import com.vultisig.wallet.ui.screens.keygen.ChooseVaultScreen
@@ -69,6 +71,7 @@ import com.vultisig.wallet.ui.screens.keysign.JoinKeysignView
 import com.vultisig.wallet.ui.screens.keysign.KeysignPasswordScreen
 import com.vultisig.wallet.ui.screens.keysign.KeysignScreen
 import com.vultisig.wallet.ui.screens.migration.MigrationOnboardingScreen
+import com.vultisig.wallet.ui.screens.migration.MigrationPasswordScreen
 import com.vultisig.wallet.ui.screens.onboarding.OnboardingScreen
 import com.vultisig.wallet.ui.screens.onboarding.OnboardingSummaryScreen
 import com.vultisig.wallet.ui.screens.onboarding.VaultBackupOnboardingScreen
@@ -465,6 +468,12 @@ internal fun SetupNavGraph(
             OnboardingSummaryScreen()
         }
 
+        // home
+
+        dialog<FastVaultPasswordReminder> {
+            FastVaultPasswordReminderDialog()
+        }
+
         // scan
 
         composable<Route.ScanQr> {
@@ -570,8 +579,13 @@ internal fun SetupNavGraph(
         }
 
         // migration
-        composable<Route.MigrationOnboarding> {
+
+        composable<Route.Migration.Onboarding> {
             MigrationOnboardingScreen()
+        }
+
+        composable<Route.Migration.Password> {
+            MigrationPasswordScreen()
         }
     }
 }

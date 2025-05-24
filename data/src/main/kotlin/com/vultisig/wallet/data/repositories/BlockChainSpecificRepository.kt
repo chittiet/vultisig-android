@@ -234,7 +234,7 @@ internal class BlockChainSpecificRepositoryImpl @Inject constructor(
                     priorityFee = gasFee.value,
                     fromAddressPubKey = fromAddressPubKeyResult?.first,
                     toAddressPubKey = toAddressPubKeyResult?.first,
-                    programId = fromAddressPubKeyResult?.second ?: false
+                    programId = fromAddressPubKeyResult?.second == true
                 )
             )
         }
@@ -264,7 +264,7 @@ internal class BlockChainSpecificRepositoryImpl @Inject constructor(
                     )
                 }
 
-                Chain.GaiaChain -> {
+                Chain.GaiaChain, Chain.Osmosis -> {
                     if (transactionType == TransactionType.TRANSACTION_TYPE_IBC_TRANSFER) {
                         val timeout = Clock.System.now().plus(10.minutes)
                             .toEpochMilliseconds().milliseconds.inWholeNanoseconds

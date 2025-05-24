@@ -41,6 +41,7 @@ enum class Chain(
     Litecoin("Litecoin", UTXO, "LTC/vbyte"),
     Dogecoin("Dogecoin", UTXO, "Doge/vbyte"),
     Dash("Dash", UTXO, "DASH/vbyte"),
+    Zcash("Zcash", UTXO, "ZEC/vbyte"),
 
     GaiaChain("Cosmos", COSMOS, "uatom"),
     Kujira("Kujira", COSMOS, "ukuji"),
@@ -102,6 +103,7 @@ val Chain.coinType: CoinType
         Chain.Ripple -> CoinType.XRP
         Chain.Akash -> CoinType.AKASH
         Chain.Tron -> CoinType.TRON
+        Chain.Zcash -> CoinType.ZCASH
     }
 
 val Chain.TssKeysignType: TssKeyType
@@ -120,7 +122,7 @@ val Chain.canSelectTokens: Boolean
         Chain.Kujira,
         Chain.GaiaChain,
         Chain.Osmosis, Chain.Tron -> true
-
+        Chain.ThorChain -> true
         Chain.CronosChain, Chain.ZkSync -> false
         else -> when {
             standard == EVM -> true
@@ -141,7 +143,8 @@ val Chain.IsSwapSupported: Boolean
 
 val Chain.isDepositSupported: Boolean
     get() = when (this) {
-        Chain.ThorChain, Chain.MayaChain, Chain.Ton, Chain.Kujira, Chain.GaiaChain -> true
+        Chain.ThorChain, Chain.MayaChain, Chain.Ton,
+        Chain.Kujira, Chain.GaiaChain, Chain.Osmosis -> true
         else -> false
     }
 
@@ -202,6 +205,7 @@ fun Chain.swapAssetName(): String {
         Chain.Ripple -> "XRP"
         Chain.Akash -> "AKT"
         Chain.Tron -> "TRX"
+        Chain.Zcash -> "ZEC"
     }
 }
 

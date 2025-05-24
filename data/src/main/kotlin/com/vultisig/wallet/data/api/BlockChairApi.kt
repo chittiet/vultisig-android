@@ -14,7 +14,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.math.BigInteger
@@ -41,6 +40,7 @@ internal class BlockChairApiImp @Inject constructor(
         Chain.Litecoin -> "litecoin"
         Chain.Dogecoin -> "dogecoin"
         Chain.Dash -> "dash"
+        Chain.Zcash -> "zcash"
         else -> throw IllegalArgumentException("Unsupported chain $chain")
     }
 
@@ -50,7 +50,7 @@ internal class BlockChairApiImp @Inject constructor(
     ): BlockChairInfo? {
         try {
             val response =
-                httpClient.get("https://api.vultisig.com/blockchair/${getChainName(chain)}/dashboards/address/${address}") {
+                httpClient.get("https://api.vultisig.com/blockchair/${getChainName(chain)}/dashboards/address/${address}?state=latest") {
                     header("Content-Type", "application/json")
                 }
             val responseData = response.body<BlockChairInfoJson>()

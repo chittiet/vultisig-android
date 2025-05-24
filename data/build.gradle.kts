@@ -7,12 +7,11 @@ plugins {
     alias(libs.plugins.daggerHiltAndroid)
     alias(libs.plugins.serialization)
     alias(libs.plugins.ksp)
-    kotlin("kapt")
     alias(libs.plugins.protobuf)
 }
 
 android {
-    namespace = "com.vulitisig.wallet"
+    namespace = "com.vultisig.wallet"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -78,8 +77,8 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.common)
-    kapt(libs.hilt.android.compiler)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.android.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.work)
 
     // room

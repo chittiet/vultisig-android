@@ -27,8 +27,8 @@ import com.vultisig.wallet.ui.theme.Theme
 internal fun <T> FormSelection(
     selected: T,
     options: List<T>,
-    mapTypeToString: (T) -> String,
     onSelectOption: (T) -> Unit,
+    mapTypeToString: @Composable (T) -> String,
 ) {
     var isListExpanded by remember { mutableStateOf(false) }
 
@@ -65,7 +65,7 @@ internal fun <T> FormSelection(
 }
 
 @Composable
-private fun SelectionCard(
+internal fun SelectionCard(
     title: String,
     @DrawableRes actionIcon: Int? = null,
     onClick: () -> Unit,
@@ -104,7 +104,7 @@ private fun FormSelectionPreview() {
     FormSelection(
         selected = "Rune",
         options = listOf("Rune", "BTC", "ETH", "BNB"),
-        mapTypeToString = { it },
-        onSelectOption = {}
+        onSelectOption = {},
+        mapTypeToString = { it }
     )
 }

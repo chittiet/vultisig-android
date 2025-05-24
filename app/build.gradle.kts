@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
-    kotlin("kapt")
     alias(libs.plugins.daggerHiltAndroid)
     id("org.jetbrains.kotlin.plugin.parcelize")
     alias(libs.plugins.ksp)
@@ -17,8 +16,8 @@ android {
         applicationId = "com.vultisig.wallet"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = 35
-        versionCode = 51
-        versionName = "1.0.51"
+        versionCode = 56
+        versionName = "1.0.56"
 
         testInstrumentationRunner = "com.vultisig.wallet.util.HiltTestRunner"
 
@@ -46,7 +45,6 @@ android {
             excludes += "/META-INF/LICENSE*.md"
         }
     }
-
     tasks.withType<Test> {
         useJUnitPlatform()
     }
@@ -108,10 +106,10 @@ dependencies {
     // hilt di
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.work)
     androidTestImplementation(libs.hilt.android.testing)
-    kaptAndroidTest(libs.hilt.android.compiler)
+    kspAndroidTest(libs.hilt.android.compiler)
 
     // ktor
     implementation(libs.ktor.client.core)

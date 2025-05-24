@@ -7,9 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vultisig.wallet.data.models.Chain
 import com.vultisig.wallet.data.models.Coin
-import com.vultisig.wallet.data.models.Coins
 import com.vultisig.wallet.data.models.ImageModel
 import com.vultisig.wallet.data.models.IsSwapSupported
+import com.vultisig.wallet.data.models.Tokens
 import com.vultisig.wallet.data.models.calculateAccountsTotalFiatValue
 import com.vultisig.wallet.data.models.canSelectTokens
 import com.vultisig.wallet.data.models.getCoinLogo
@@ -50,7 +50,6 @@ internal data class ChainTokensUiModel(
     val canSwap: Boolean = true,
     val canSelectTokens: Boolean = false,
     val isBalanceVisible: Boolean = true,
-    val isBuyWeweVisible: Boolean = false,
 )
 
 @Immutable
@@ -121,7 +120,6 @@ internal class ChainTokensViewModel @Inject constructor(
         }
     }
 
-
     fun deposit() {
         viewModelScope.launch {
             navigator.navigate(
@@ -168,21 +166,6 @@ internal class ChainTokensViewModel @Inject constructor(
         }
     }
 
-    fun buyWewe() {
-        viewModelScope.launch {
-            if (!tokens.value.contains(Coins.wewe)) {
-                enableTokenUseCase(vaultId, Coins.wewe)
-            }
-            navigator.route(
-                Route.Swap(
-                    vaultId = vaultId,
-                    chainId = chainRaw,
-                    dstTokenId = Coins.wewe.id,
-                )
-            )
-        }
-    }
-
     private fun loadData() {
         discoverTokenUseCase(vaultId, chainRaw)
 
@@ -220,7 +203,7 @@ internal class ChainTokensViewModel @Inject constructor(
                             ?: "",
                         fiatBalance = account.fiatValue
                             ?.let(fiatValueToStringMapper::map),
-                        tokenLogo = Coins.getCoinLogo(token.logo),
+                        tokenLogo = Tokens.getCoinLogo(token.logo),
                         chainLogo = chain.logo,
                     )
                 }
@@ -242,8 +225,7 @@ internal class ChainTokensViewModel @Inject constructor(
                         totalBalance = totalBalance,
                         canDeposit = chain.isDepositSupported,
                         canSwap = chain.IsSwapSupported,
-                        canSelectTokens = chain.canSelectTokens,
-                        isBuyWeweVisible = chain == Chain.Base
+                        canSelectTokens = chain.canSelectTokens
                     )
                 }
             }.onCompletion {

@@ -33,6 +33,7 @@ import com.vultisig.wallet.ui.components.UiSpacer
 import com.vultisig.wallet.ui.components.library.form.FormCard
 import com.vultisig.wallet.ui.components.library.form.FormSelection
 import com.vultisig.wallet.ui.components.library.form.FormTextFieldCard
+import com.vultisig.wallet.ui.components.library.form.SelectionCard
 import com.vultisig.wallet.ui.models.deposit.DepositFormUiModel
 import com.vultisig.wallet.ui.models.deposit.DepositFormViewModel
 import com.vultisig.wallet.ui.models.deposit.DepositOption
@@ -93,6 +94,8 @@ internal fun DepositFormScreen(
         thorAddress = model.thorAddressFieldState,
         onThorAddressLostFocus = {  },
         onSetThorAddress = {  },
+
+        onOpenSelectToken = model::selectToken,
     )
 }
 
@@ -138,6 +141,8 @@ internal fun DepositFormScreen(
     onSetThorAddress: (String) -> Unit = {},
 
     onSelectCoin: (TokenMergeInfo) -> Unit = {},
+
+    onOpenSelectToken: () -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
     val errorText = state.errorText
@@ -176,12 +181,21 @@ internal fun DepositFormScreen(
                 )
             }
 
-            FormSelection(
-                selected = state.depositOption,
-                options = state.depositOptions,
-                mapTypeToString = { it.name },
-                onSelectOption = onSelectDepositOption,
-            )
+            FormSelection(selected = state.depositOption, options = state.depositOptions, onSelectOption = onSelectDepositOption, mapTypeToString = { option ->
+                    when (option) {
+                        DepositOption.Bond -> stringResource(R.string.deposit_option_bond)
+                        DepositOption.Unbond -> stringResource(R.string.deposit_option_unbond)
+                        DepositOption.Leave -> stringResource(R.string.deposit_option_leave)
+                        DepositOption.Stake -> stringResource(R.string.deposit_option_stake)
+                        DepositOption.Unstake -> stringResource(R.string.deposit_option_unstake)
+                        DepositOption.Custom -> stringResource(R.string.deposit_option_custom)
+                        DepositOption.TransferIbc -> stringResource(R.string.deposit_option_ibc_transfer)
+                        DepositOption.Switch -> stringResource(R.string.deposit_option_switch)
+                        DepositOption.Merge -> stringResource(R.string.deposit_option_merge)
+                        DepositOption.StakeTcy -> stringResource(R.string.deposit_option_stake_tcy)
+                        DepositOption.UnstakeTcy -> stringResource(R.string.deposit_option_unstake_tcy)
+                    }
+                })
 
             when (val depositOption = state.depositOption) {
                 DepositOption.TransferIbc -> {
@@ -247,16 +261,43 @@ internal fun DepositFormScreen(
                 }
 
                 else -> {
-                    if (depositOption != DepositOption.Leave && depositChain == Chain.ThorChain ||
-                        depositOption == DepositOption.Custom && depositChain == Chain.MayaChain ||
+                    if (depositChain == Chain.ThorChain && depositOption !in arrayOf(
+                            DepositOption.Bond, DepositOption.Unbond, DepositOption.Leave,
+                            DepositOption.StakeTcy, DepositOption.UnstakeTcy,
+                        )
+                    ) {
+                        FormCard {
+                            SelectionCard(
+                                title = state.selectedToken.ticker,
+                                actionIcon = R.drawable.ic_caret_down,
+                                onClick = onOpenSelectToken,
+                            )
+                        }
+                    }
+
+                    val isUnstakeTcy = depositOption == DepositOption.UnstakeTcy
+                    val isTcyOption = depositOption == DepositOption.StakeTcy || isUnstakeTcy
+                    val unstakableBalance = state.unstakableTcyAmount?.takeIf { it.isNotBlank() } ?: "0"
+                    
+                    val amountLabel = when {
+                        isUnstakeTcy -> stringResource(R.string.deposit_form_amount_title, unstakableBalance)
+                        else -> stringResource(R.string.deposit_form_amount_title, state.balance.asString())
+                    }
+                    
+                    val amountHint = when {
+                        isUnstakeTcy -> stringResource(R.string.deposit_form_unstake_percentage_hint)
+                        else -> stringResource(R.string.send_amount_currency_hint)
+                    }
+                    
+                    if (
+                        isTcyOption ||
+                        (depositOption != DepositOption.Leave && depositChain == Chain.ThorChain) ||
+                        (depositOption == DepositOption.Custom && depositChain == Chain.MayaChain) ||
                         depositOption == DepositOption.Unstake || depositOption == DepositOption.Stake
                     ) {
                         FormTextFieldCard(
-                            title = stringResource(
-                                R.string.deposit_form_amount_title,
-                                state.balance.asString()
-                            ),
-                            hint = stringResource(R.string.send_amount_currency_hint),
+                            title = amountLabel,
+                            hint = amountHint,
                             keyboardType = KeyboardType.Number,
                             textFieldState = tokenAmountFieldState,
                             onLostFocus = onTokenAmountLostFocus,
@@ -264,7 +305,11 @@ internal fun DepositFormScreen(
                         )
                     }
 
-                    if (depositOption != DepositOption.Custom) {
+                    if (depositOption !in arrayOf(
+                            DepositOption.Custom, DepositOption.StakeTcy,
+                            DepositOption.UnstakeTcy
+                        )
+                    ) {
                         FormTextFieldCard(
                             title = stringResource(R.string.deposit_form_node_address_title),
                             hint = stringResource(R.string.deposit_form_node_address_title),

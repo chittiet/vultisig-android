@@ -1,4 +1,15 @@
 <resources>
+    <string name="deposit_option_bond">Bond</string>
+    <string name="deposit_option_unbond">Unbond</string>
+    <string name="deposit_option_leave">Leave</string>
+    <string name="deposit_option_stake">Stake</string>
+    <string name="deposit_option_unstake">Unstake</string>
+    <string name="deposit_option_custom">Custom</string>
+    <string name="deposit_option_ibc_transfer">IBC Transfer</string>
+    <string name="deposit_option_switch">Switch</string>
+    <string name="deposit_option_merge">Merge</string>
+    <string name="deposit_option_stake_tcy">Stake TCY</string>
+    <string name="deposit_option_unstake_tcy">Unstake TCY</string>
     <string name="app_name">Vultisig</string>
     <string name="token_logo">Token logo</string>
     <string name="tokens">Tokens</string>
@@ -39,7 +50,6 @@
     <string name="chain_account_view_send">SEND</string>
     <string name="chain_account_view_swap">SWAP</string>
     <string name="chain_account_view_deposit">FUNCTION</string>
-    <string name="chain_account_buy_wewe">BUY $WEWE</string>
     <string name="vault_settings_error_backup_file">an error occurred</string>
     <string name="vault_settings_success_backup_file">file saved in Downloads/%1$s</string>
     <string name="vault_edit_this_name_already_exist">this name already exist</string>
@@ -223,9 +233,10 @@
     <string name="deposit_form_node_address_title">Node Address</string>
     <string name="deposit_form_provider_title">Provider (optional)</string>
     <string name="deposit_form_provider_hint">Provider</string>
-    <string name="deposit_form_operator_fee_title">Operator\’s Fee (optional)</string>
+    <string name="deposit_form_operator_fee_title">Operator’s Fee (optional)</string>
     <string name="deposit_message_deposit_title">%s message deposit</string>
     <string name="deposit_form_custom_memo_title">Custom memo</string>
+    <string name="deposit_form_unstake_percentage_hint">Enter percentage to unstake</string>
     <string name="transaction_swap_tracking_link">Swap tracking link</string>
     <string name="swap_screen_same_asset_error_message">Source and destination assets cannot be the same. </string>
     <string name="address_book_toolbar_title">Address Book</string>
@@ -553,4 +564,6 @@
     <string name="migration_onboarding_upgrade_now" translatable="false">Upgrade now</string>
     <string name="upgrade_banner_title" translatable="false">Upgrade your vault now</string>
     <string name="deposit_form_custom_memo_optional_title" translatable="false">Custom Memo (optional)</string>
+    <string name="transfer_ibc_function_memo_title" translatable="false">Memo</string>
+    <string name="merge_account_doesnt_exist" translatable="false">Selected token is not found for this address</string>
 </resources>

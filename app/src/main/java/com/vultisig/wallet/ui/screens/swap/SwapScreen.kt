@@ -1,18 +1,27 @@
 package com.vultisig.wallet.ui.screens.swap
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -22,20 +31,27 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -46,9 +62,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vultisig.wallet.R
+import com.vultisig.wallet.data.models.SwapQuote.Companion.expiredAfter
+import com.vultisig.wallet.data.utils.timerFlow
 import com.vultisig.wallet.ui.components.TokenLogo
 import com.vultisig.wallet.ui.components.UiAlertDialog
 import com.vultisig.wallet.ui.components.UiIcon
@@ -68,7 +87,11 @@ import com.vultisig.wallet.ui.models.swap.SwapFormUiModel
 import com.vultisig.wallet.ui.models.swap.SwapFormViewModel
 import com.vultisig.wallet.ui.theme.Theme
 import com.vultisig.wallet.ui.utils.asString
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import java.math.BigInteger
+import java.util.Locale
+import kotlin.time.Duration
 
 @Composable
 internal fun SwapScreen(
@@ -88,6 +111,7 @@ internal fun SwapScreen(
         onDismissError = model::hideError,
         onSelectDstToken = model::selectDstToken,
         onFlipSelectedTokens = model::flipSelectedTokens,
+        onSelectSrcPercentage = model::selectSrcPercentage,
     )
 }
 
@@ -105,14 +129,33 @@ internal fun SwapScreen(
     onDismissError: () -> Unit = {},
     onFlipSelectedTokens: () -> Unit = {},
     onSwap: () -> Unit = {},
+    onSelectSrcPercentage: (Float) -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isSrcAmountFocused by interactionSource.collectIsFocusedAsState()
+
+    val isShowingKeyboard by keyboardAsState()
+
     Scaffold(
         containerColor = Theme.colors.backgrounds.primary,
         topBar = {
             VsTopAppBar(
                 title = "Swap",
-                onBackClick = onBackClick,
+                iconLeft = R.drawable.ic_caret_left,
+                onIconLeftClick = onBackClick,
+                actions = {
+                    if (state.expiredAt != null) {
+                        QuoteTimer(
+                            expiredAt = state.expiredAt,
+                            modifier = Modifier
+                                .padding(
+                                    horizontal = 16.dp,
+                                )
+                        )
+                    }
+                }
             )
         },
         content = { contentPadding ->
@@ -163,6 +206,7 @@ internal fun SwapScreen(
                                     hintColor = Theme.colors.text.extraLight,
                                     hintStyle = Theme.brockmann.headings.title2,
                                     lineLimits = TextFieldLineLimits.SingleLine,
+                                    interactionSource = interactionSource,
                                     // TODO onAmountLostFocus
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Number,
@@ -309,25 +353,110 @@ internal fun SwapScreen(
 
         },
         bottomBar = {
-            VsButton(
-                label = stringResource(R.string.swap_swap_button),
-                variant = VsButtonVariant.Primary,
-                state = if (state.isSwapDisabled)
-                    VsButtonState.Disabled
-                else VsButtonState.Enabled,
-                onClick = {
-                    focusManager.clearFocus(true)
-                    onSwap()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        vertical = 12.dp,
-                        horizontal = 24.dp,
+            AnimatedContent(
+                targetState = isSrcAmountFocused && isShowingKeyboard,
+                transitionSpec = {
+                    val animationSpec = tween<IntOffset>(durationMillis = 60)
+                    slideInVertically(animationSpec) { it } togetherWith
+                            slideOutVertically(animationSpec) { it }
+                }
+            ) { showPercentagePicker ->
+                if (showPercentagePicker) {
+                    Column {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = Theme.colors.borders.light
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Theme.colors.backgrounds.secondary,
+                                )
+                                .padding(
+                                    vertical = 12.dp,
+                                    horizontal = 8.dp,
+                                ),
+                        ) {
+                            PercentageItem(
+                                title = "25%",
+                                onClick = {
+                                    onSelectSrcPercentage(0.25f)
+                                },
+                            )
+                            PercentageItem(
+                                title = "50%",
+                                onClick = {
+                                    onSelectSrcPercentage(0.5f)
+                                },
+                            )
+                            PercentageItem(
+                                title = "75%",
+                                onClick = {
+                                    onSelectSrcPercentage(0.75f)
+                                },
+                            )
+                            PercentageItem(
+                                title = "MAX",
+                                onClick = {
+                                    onSelectSrcPercentage(1f)
+                                },
+                            )
+                        }
+                    }
+                } else {
+                    VsButton(
+                        label = stringResource(R.string.swap_swap_button),
+                        variant = VsButtonVariant.Primary,
+                        state = if (state.isSwapDisabled)
+                            VsButtonState.Disabled
+                        else VsButtonState.Enabled,
+                        onClick = {
+                            focusManager.clearFocus(true)
+                            onSwap()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 12.dp,
+                                horizontal = 24.dp,
+                            )
                     )
-            )
+                }
+            }
         }
     )
+}
+
+@Composable
+private fun RowScope.PercentageItem(
+    title: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = title,
+        style = Theme.brockmann.supplementary.caption,
+        color = Theme.colors.text.primary,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .background(
+                color = Theme.colors.backgrounds.tertiary,
+                shape = RoundedCornerShape(99.dp),
+            )
+            .padding(
+                all = 8.dp,
+            )
+            .weight(1f)
+    )
+}
+
+@Composable
+fun keyboardAsState(): State<Boolean> {
+    val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    return rememberUpdatedState(isImeVisible)
 }
 
 @Composable
@@ -461,6 +590,62 @@ private fun TokenInput(
     }
 }
 
+@Composable
+private fun QuoteTimer(
+    expiredAt: Instant,
+    modifier: Modifier = Modifier,
+) {
+    var timeLeft: String by remember { mutableStateOf("") }
+    var progress: Float by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(expiredAt) {
+        timerFlow()
+            .collect {
+                val now = Clock.System.now()
+                val left = expiredAt - now
+                timeLeft = formatDurationAsMinutesSeconds(left)
+                progress = (left / expiredAfter).toFloat()
+            }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier
+            .background(
+                color = Theme.colors.backgrounds.secondary,
+                shape = RoundedCornerShape(99.dp)
+            )
+            .padding(
+                vertical = 6.dp,
+                horizontal = 12.dp,
+            )
+    ) {
+        Text(
+            text = timeLeft,
+            style = Theme.brockmann.supplementary.caption,
+            color = Theme.colors.text.light,
+        )
+
+        CircularProgressIndicator(
+            progress = { progress },
+            trackColor = Theme.colors.borders.normal,
+            color = Theme.colors.primary.accent4,
+            strokeCap = StrokeCap.Square,
+            strokeWidth = 2.dp,
+            gapSize = 0.dp,
+            modifier = Modifier
+                .size(16.dp)
+        )
+    }
+}
+
+private fun formatDurationAsMinutesSeconds(duration: Duration): String {
+    val totalSeconds = duration.inWholeSeconds.coerceAtLeast(0)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+}
 
 @Preview
 @Composable
